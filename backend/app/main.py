@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.database.connection import engine, Base
 from app.models.user import User
+from app.api.users import router as users_router
 
 app = FastAPI(
     title="FrauDex API",
@@ -12,6 +13,7 @@ app = FastAPI(
     
 )
 Base.metadata.create_all(bind=engine)
+app.include_router(users_router)
 
 @app.get("/")
 def root():
