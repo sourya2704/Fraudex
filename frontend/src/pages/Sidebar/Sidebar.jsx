@@ -13,8 +13,8 @@ import { Link, useLocation } from "react-router-dom";
 const navigationItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Upload Invoice", icon: FileUp, href: "/dashboard/upload-invoice" },
-  { label: "Invoices", icon: FileText },
-  { label: "Fraud Detection", icon: ShieldAlert },
+  { label: "Invoices", icon: FileText, href: "/dashboard/invoices" },
+  { label: "Fraud Detection", icon: ShieldAlert, href: "/dashboard/fraud-detection" },
   { label: "Analytics", icon: BarChart3 },
 ];
 
