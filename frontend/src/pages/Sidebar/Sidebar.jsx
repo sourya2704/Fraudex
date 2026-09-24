@@ -15,7 +15,7 @@ const navigationItems = [
   { label: "Upload Invoice", icon: FileUp, href: "/dashboard/upload-invoice" },
   { label: "Invoices", icon: FileText, href: "/dashboard/invoices" },
   { label: "Fraud Detection", icon: ShieldAlert, href: "/dashboard/fraud-detection" },
-  { label: "Analytics", icon: BarChart3 },
+  { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
 ];
 
 function Sidebar({ expanded = true }) {
