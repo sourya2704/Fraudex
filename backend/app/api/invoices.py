@@ -18,6 +18,8 @@ from app.core.storage import (
     ensure_storage_dir,
 )
 from app.extraction import extract_text, ExtractionError
+from app.extraction.parser import parse_invoice_text
+from app.validation import validate_invoice_fields
 from app.models.invoice import Invoice, InvoiceStatus
 from app.models.user import User
 from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
@@ -228,7 +230,72 @@ def extract_invoice_text(
         )
 
     invoice.raw_text = raw_text
+
+    # Parse structured fields from the raw text and fill in any that the
+    # invoice does not already have. We do not overwrite values a user may
+    # have set manually via PUT — extraction only fills blanks.
+    parsed = parse_invoice_text(raw_text)["fields"]
+    for name, value in parsed.items():
+        if value is not None and getattr(invoice, name, None) in (None, ""):
+            setattr(invoice, name, value)
+
     invoice.status = InvoiceStatus.ANALYSIS_READY.value
     db.commit()
     db.refresh(invoice)
     return invoice
+
+
+# ---------------------------------------------------------------------------
+# Deterministic validation (STEP 7)
+# ---------------------------------------------------------------------------
+
+@router.post("/{invoice_id}/validate")
+def validate_invoice(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "FINANCE_MANAGER")),
+):
+    """
+    Run deterministic data-integrity validation on an invoice's current
+    structured fields (required fields, amount consistency, date sanity).
+
+    This is NOT fraud detection — it checks that the invoice data is
+    internally consistent. Returns a structured result with issues,
+    severities, and an overall `valid` flag.
+    """
+    invoice = _get_invoice_or_404(db, invoice_id)
+
+    fields = {
+        "invoice_number": invoice.invoice_number,
+        "invoice_date": invoice.invoice_date,
+        "due_date": invoice.due_date,
+        "subtotal": invoice.subtotal,
+        "tax": invoice.tax,
+        "total_amount": invoice.total_amount,
+        "currency": invoice.currency,
+    }
+
+    result = validate_invoice_fields(fields)
+
+    return {
+        "invoice_id": invoice.id,
+        "fields": {
+            "invoice_number": invoice.invoice_number,
+            "invoice_date": (
+                invoice.invoice_date.isoformat() if invoice.invoice_date else None
+            ),
+            "due_date": (
+                invoice.due_date.isoformat() if invoice.due_date else None
+            ),
+            "subtotal": (
+                str(invoice.subtotal) if invoice.subtotal is not None else None
+            ),
+            "tax": str(invoice.tax) if invoice.tax is not None else None,
+            "total_amount": (
+                str(invoice.total_amount)
+                if invoice.total_amount is not None else None
+            ),
+            "currency": invoice.currency,
+        },
+        "validation": result.to_dict(),
+    }
