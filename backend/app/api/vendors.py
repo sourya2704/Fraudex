@@ -19,7 +19,7 @@ def create_vendor(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN", "FINANCE_MANAGER")),
 ):
-    # Guard against duplicate tax_id (it is unique in the DB).
+
     if vendor.tax_id:
         existing = db.query(Vendor).filter(
             Vendor.tax_id == vendor.tax_id
@@ -82,10 +82,10 @@ def update_vendor(
             detail="Vendor not found",
         )
 
-    # Only apply fields the client actually sent.
+
     update_data = vendor_update.model_dump(exclude_unset=True)
 
-    # If tax_id is being changed, ensure it stays unique.
+
     new_tax_id = update_data.get("tax_id")
     if new_tax_id and new_tax_id != vendor.tax_id:
         clash = db.query(Vendor).filter(

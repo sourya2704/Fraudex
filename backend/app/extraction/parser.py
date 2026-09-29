@@ -1,22 +1,9 @@
-"""
-Deterministic parsing of raw invoice text into structured fields.
-
-This is intentionally rule-based (regex + label matching), not LLM-based.
-It gives predictable, explainable results and a clear record of which
-fields were found. Fields it cannot confidently read are left as None so
-the validation layer (STEP 7b) can flag them, rather than guessing.
-"""
-
 import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 
-# --- helpers ---------------------------------------------------------------
-
-# Common label variants seen on invoices. Order matters: more specific
-# labels (e.g. "grand total") should be tried before generic ones.
 _INVOICE_NUMBER_LABELS = [
     r"invoice\s*(?:no|number|num|#)",
     r"inv\s*(?:no|#)",
@@ -50,11 +37,11 @@ _TOTAL_LABELS = [
     r"total\s*amount\s*due",
     r"total\s*payable",
     r"invoice\s*total",
-    # Generic "total" but NOT "subtotal" / "sub-total" / "sub total".
+
     r"(?<!sub)(?<!sub[\-\s])total",
 ]
 
-# ISO 4217 codes we care about, plus common symbols.
+
 _CURRENCY_CODES = ["INR", "USD", "EUR", "GBP", "JPY", "AUD", "CAD"]
 _CURRENCY_SYMBOLS = {
     "₹": "INR",
@@ -65,9 +52,7 @@ _CURRENCY_SYMBOLS = {
     "Rs.": "INR",
 }
 
-# Match the longest numeric form first. A plain run of digits (with optional
-# decimals) comes first so "100000.00" is captured whole; the grouped form
-# handles thousands separators like "1,20,000" or "2,500.00".
+
 _NUMBER_RE = r"[-+]?\d+(?:,\d+)*(?:\.\d+)?"
 
 _DATE_FORMATS = [
@@ -98,17 +83,9 @@ def _to_date(raw: str) -> Optional[date]:
 
 
 def _find_labeled_value(text: str, labels: list[str], value_pattern: str) -> Optional[str]:
-    """
-    Find the first value that follows any of the given labels on the same line.
-    Labels are matched case-insensitively. Returns the raw matched string.
-    """
     for label in labels:
-        # After the label, allow optional junk before the value:
-        #   - separators (: - =)
-        #   - parenthetical notes like "(18%)"
-        #   - currency symbols/prefixes ($ ₹ € £ Rs)
-        #   - whitespace
-        # then capture the value.
+
+
         junk = r"(?:[:\-=]|\([^)]*\)|[$₹€£]|Rs\.?|\s)*"
         pattern = rf"{label}{junk}({value_pattern})"
         m = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
@@ -117,23 +94,7 @@ def _find_labeled_value(text: str, labels: list[str], value_pattern: str) -> Opt
     return None
 
 
-# --- public API ------------------------------------------------------------
-
 def parse_invoice_text(raw_text: str) -> dict:
-    """
-    Parse raw invoice text into structured fields.
-
-    Returns a dict:
-      {
-        "fields": {invoice_number, invoice_date, due_date,
-                   subtotal, tax, total_amount, currency},
-        "found":  [list of field names successfully parsed],
-        "missing":[list of field names that could not be parsed],
-      }
-
-    Amounts are Decimal, dates are datetime.date, others are str.
-    Any field that cannot be confidently read is None.
-    """
     text = raw_text or ""
 
     invoice_number = _find_labeled_value(
@@ -151,7 +112,7 @@ def parse_invoice_text(raw_text: str) -> dict:
     tax_raw = _find_labeled_value(text, _TAX_LABELS, _NUMBER_RE)
     total_raw = _find_labeled_value(text, _TOTAL_LABELS, _NUMBER_RE)
 
-    # currency: explicit code, then symbol
+
     currency = _find_labeled_value(text, [r"currency"], r"[A-Za-z]{3}")
     if currency:
         currency = currency.upper()
@@ -179,4 +140,80 @@ def parse_invoice_text(raw_text: str) -> dict:
     found = [k for k, v in fields.items() if v is not None]
     missing = [k for k, v in fields.items() if v is None]
 
-    return {"fields": fields, "found": found, "missing": missing}
+    return {
+        "fields": fields,
+        "found": found,
+        "missing": missing,
+        "line_items": parse_line_items(text),
+    }
+
+
+_SUMMARY_KEYWORDS = (
+    "subtotal", "sub-total", "sub total", "total", "tax", "gst", "vat",
+    "grand", "amount due", "balance", "discount", "shipping",
+)
+
+_METADATA_KEYWORDS = (
+    "invoice", "date", "due", "number", "bill", "currency", "vendor",
+    "customer", "phone", "email", "address", "gstin", "pan", "order",
+)
+
+_LINE_TOTAL_MIN_NUMBERS = 2
+
+
+def parse_line_items(raw_text: str) -> list:
+    """
+    Extract line items from invoice text.
+
+    A line item is a row that ends in numeric columns. We interpret the
+    trailing numbers as (unit_price, line_total) when two are present, or
+    (line_total) when one is present, with an optional leading quantity.
+    Header rows and summary rows (Subtotal/Tax/Total) are skipped.
+
+    Returns a list of dicts: description, quantity, unit_price, line_total.
+    Fields that cannot be read are None. This is deterministic and best-effort.
+    """
+    items = []
+    for line in (raw_text or "").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        lower = stripped.lower()
+        if any(kw in lower for kw in _SUMMARY_KEYWORDS):
+            continue
+        if any(kw in lower for kw in _METADATA_KEYWORDS):
+            continue
+
+        # Skip labeled metadata lines ("Something: value").
+        if ":" in stripped:
+            continue
+
+        # A real item row has 2+ POSITIVE numbers (money/qty are never
+        # negative). This also excludes date fragments like "-2026" that the
+        # number regex would otherwise capture.
+        raw_numbers = re.findall(_NUMBER_RE, stripped)
+        decimals = [_to_decimal(n) for n in raw_numbers]
+        decimals = [d for d in decimals if d is not None and d >= 0]
+        if len(decimals) < _LINE_TOTAL_MIN_NUMBERS:
+            continue
+
+        description = re.split(_NUMBER_RE, stripped)[0].strip(" \t:-|")
+        if not description:
+            continue
+
+        quantity = unit_price = line_total = None
+
+        if len(decimals) >= 3:
+            quantity, unit_price, line_total = decimals[0], decimals[-2], decimals[-1]
+        elif len(decimals) == 2:
+            unit_price, line_total = decimals[0], decimals[1]
+
+        items.append({
+            "description": description,
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "line_total": line_total,
+        })
+
+    return items

@@ -1,28 +1,12 @@
-"""
-Deterministic invoice validation.
-
-Given the structured fields parsed from an invoice, apply a set of explicit,
-explainable rules and return a structured result. This is NOT fraud
-detection (that comes later) — it is data-integrity checking: are the
-required fields present, are the numbers internally consistent, are the
-dates sane.
-
-Each issue carries a machine-readable `code`, a `severity`, and a
-human-readable `message`, so the API, the UI, and a human reviewer can all
-act on the same structured output.
-"""
-
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Any, Optional
 
 
-# Amounts within this absolute tolerance are treated as equal, to absorb
-# rounding differences (e.g. tax computed to fractions of a cent).
 _AMOUNT_TOLERANCE = Decimal("0.05")
 
-# Fields that must be present for an invoice to be considered complete.
+
 _REQUIRED_FIELDS = [
     "invoice_number",
     "invoice_date",
@@ -31,9 +15,9 @@ _REQUIRED_FIELDS = [
 
 
 class Severity:
-    ERROR = "ERROR"      # invoice cannot be trusted as-is
-    WARNING = "WARNING"  # suspicious but not necessarily invalid
-    INFO = "INFO"        # informational only
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    INFO = "INFO"
 
 
 @dataclass
@@ -61,7 +45,7 @@ class ValidationResult:
 
     @property
     def valid(self) -> bool:
-        # Valid means no ERROR-level issues. Warnings do not fail validation.
+
         return not any(i.severity == Severity.ERROR for i in self.issues)
 
     def to_dict(self) -> dict:
@@ -78,14 +62,6 @@ def _is_negative(value: Any) -> bool:
 
 
 def validate_invoice_fields(fields: dict) -> ValidationResult:
-    """
-    Run all deterministic validation rules against parsed invoice fields.
-
-    `fields` is the dict produced by parse_invoice_text()["fields"]:
-      invoice_number, invoice_date, due_date, subtotal, tax,
-      total_amount, currency
-    Missing values are None.
-    """
     result = ValidationResult()
 
     invoice_number = fields.get("invoice_number")
@@ -96,7 +72,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
     total_amount = fields.get("total_amount")
     currency = fields.get("currency")
 
-    # --- Rule 1: required fields present ---
+
     for name in _REQUIRED_FIELDS:
         if fields.get(name) is None:
             result.add(
@@ -106,7 +82,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name=name,
             )
 
-    # --- Rule 2: currency present (warning, not fatal) ---
+
     if not currency:
         result.add(
             "MISSING_CURRENCY",
@@ -115,7 +91,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
             field_name="currency",
         )
 
-    # --- Rule 3: no negative amounts ---
+
     for name in ("subtotal", "tax", "total_amount"):
         if _is_negative(fields.get(name)):
             result.add(
@@ -125,7 +101,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name=name,
             )
 
-    # --- Rule 4: subtotal + tax == total (only if all three present) ---
+
     if (
         isinstance(subtotal, Decimal)
         and isinstance(tax, Decimal)
@@ -141,7 +117,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name="total_amount",
             )
 
-    # --- Rule 5: total should not be less than subtotal ---
+
     if isinstance(subtotal, Decimal) and isinstance(total_amount, Decimal):
         if total_amount < subtotal:
             result.add(
@@ -151,7 +127,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name="total_amount",
             )
 
-    # --- Rule 6: due date not before invoice date ---
+
     if isinstance(invoice_date, date) and isinstance(due_date, date):
         if due_date < invoice_date:
             result.add(
@@ -161,7 +137,7 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name="due_date",
             )
 
-    # --- Rule 7: zero total is suspicious ---
+
     if isinstance(total_amount, Decimal) and total_amount == 0:
         result.add(
             "ZERO_TOTAL",

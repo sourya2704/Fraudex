@@ -7,15 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.invoice import InvoiceStatus
 
 
-# ---------------------------------------------------------------------------
-# Invoice line items
-# ---------------------------------------------------------------------------
-
 class InvoiceItemBase(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     description: Optional[str] = Field(default=None, max_length=500)
-    # ge=0: quantities and money can be zero but never negative.
+
     quantity: Optional[Decimal] = Field(default=None, ge=0)
     unit_price: Optional[Decimal] = Field(default=None, ge=0)
     tax: Optional[Decimal] = Field(default=None, ge=0)
@@ -33,12 +29,7 @@ class InvoiceItemResponse(InvoiceItemBase):
     invoice_id: int
 
 
-# ---------------------------------------------------------------------------
-# Invoices
-# ---------------------------------------------------------------------------
-
 class InvoiceInputBase(BaseModel):
-    """Shared input cleanup for invoice create/update."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -56,7 +47,7 @@ class InvoiceInputBase(BaseModel):
     @field_validator("currency", check_fields=False)
     @classmethod
     def uppercase_currency(cls, value):
-        # Normalize "inr" -> "INR" so comparisons are consistent.
+
         return value.upper() if isinstance(value, str) else value
 
 
@@ -73,7 +64,7 @@ class InvoiceCreate(InvoiceInputBase):
 
 
 class InvoiceUpdate(InvoiceInputBase):
-    # All optional: only provided fields are updated.
+
     invoice_number: Optional[str] = Field(default=None, max_length=100)
     vendor_id: Optional[int] = None
     invoice_date: Optional[date] = None

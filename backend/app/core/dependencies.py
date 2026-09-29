@@ -55,16 +55,6 @@ def get_current_user(
 
 
 def require_role(*allowed_roles: str):
-    """
-    Dependency factory for role-based access control (RBAC).
-
-    Usage:
-        Depends(require_role("ADMIN"))
-        Depends(require_role("ADMIN", "FINANCE_MANAGER"))
-
-    Returns the current user if their role is allowed,
-    otherwise raises HTTP 403.
-    """
 
     def role_checker(
         current_user: User = Depends(get_current_user)

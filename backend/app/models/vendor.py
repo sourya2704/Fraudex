@@ -11,7 +11,7 @@ class Vendor(Base):
 
     name = Column(String(255), nullable=False, index=True)
 
-    # Tax identifier (e.g. GSTIN / VAT). Unique when present.
+
     tax_id = Column(String(100), unique=True, index=True, nullable=True)
 
     email = Column(String(255), nullable=True)
