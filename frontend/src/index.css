@@ -1,1 +1,190 @@
 @import "tailwindcss";
+
+:root {
+  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  color: #141827;
+  background: #f4f5f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: #c7f36b;
+  color: #141827;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #f6f7f4;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+main {
+  letter-spacing: 0;
+}
+
+main>div:not(.min-w-0) {
+  border-color: #e5e7f0;
+}
+
+/* Shared surface treatment for the existing Tailwind-based pages. */
+main [class~="bg-white"] {
+  border-color: #e4e7f0;
+  box-shadow: 0 8px 24px rgba(32, 39, 68, 0.05);
+  border-radius: 0.75rem;
+}
+
+main [class~="border-slate-200"] {
+  border-color: #e4e7f0;
+}
+
+main [class~="bg-slate-50"] {
+  background-color: #f1f3f8;
+}
+
+main input,
+main select {
+  border-radius: 0.7rem;
+}
+
+main input:focus,
+main select:focus {
+  border-color: #5967f2;
+  box-shadow: 0 0 0 4px rgba(89, 103, 242, 0.14);
+}
+
+main button:not(:disabled),
+main a {
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+main button:not(:disabled):hover,
+main a:hover {
+  transform: translateY(-1px);
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef0f7;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid #eef0f7;
+  border-radius: 999px;
+  background: #b8bdd0;
+}
+
+html.dark body {
+  color: #edf0ff;
+  background: #101522;
+}
+
+html.dark main {
+  color: #edf0ff;
+  background-color: transparent;
+}
+
+html.dark main [class~="bg-white"] {
+  background: #171d2d;
+  border-color: rgba(112, 124, 180, 0.27);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+html.dark main [class~="bg-slate-50"],
+html.dark main [class~="bg-slate-50\/70"],
+html.dark main [class~="bg-slate-50\/60"] {
+  background-color: rgba(37, 43, 70, 0.72);
+}
+
+html.dark main [class~="bg-\[#f4f5f0\]"] {
+  background-color: transparent;
+}
+
+html.dark main [class~="border-slate-200"],
+html.dark main [class~="border-slate-100"] {
+  border-color: #303754;
+}
+
+html.dark main [class~="text-slate-900"],
+html.dark main [class~="text-slate-950"],
+html.dark main [class~="text-slate-800"] {
+  color: #edf0ff;
+}
+
+html.dark main [class~="text-slate-700"],
+html.dark main [class~="text-slate-600"] {
+  color: #c2c8e0;
+}
+
+html.dark main [class~="text-slate-500"],
+html.dark main [class~="text-slate-400"] {
+  color: #929ab8;
+}
+
+html.dark main [class~="text-indigo-600"],
+html.dark main [class~="text-indigo-500"] {
+  color: #aeb7ff;
+}
+
+html.dark main [class~="text-emerald-600"] {
+  color: #8ce6bf;
+}
+
+html.dark main [class~="text-rose-600"] {
+  color: #ff9daa;
+}
+
+html.dark main [class~="text-amber-600"] {
+  color: #ffd27a;
+}
+
+html.dark main input,
+html.dark main select {
+  color: #edf0ff;
+  background-color: #171c31;
+  border-color: #3a4262;
+}
+
+html.dark main input::placeholder {
+  color: #77809f;
+}
+
+html.dark main [class~="border-b"] {
+  border-color: rgba(112, 124, 180, 0.2);
+}
+
+html.dark main [class~="shadow-sm"] {
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #151a31;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  border-color: #151a31;
+  background: #454d70;
+}

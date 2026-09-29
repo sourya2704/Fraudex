@@ -10,7 +10,7 @@ function Invoices() {
   const [risk, setRisk] = useState("All Risk");
 
   return (
-    <main className="flex min-h-screen bg-[#f5f7fb] text-slate-900">
+    <main className="flex min-h-screen bg-[#f4f5f0] text-slate-900">
       <Sidebar expanded />
       <div className="min-w-0 flex-1">
         <header className="flex h-[66px] items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
