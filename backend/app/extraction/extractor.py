@@ -30,9 +30,10 @@ def _extract_pdf_text_layer(path: str) -> str:
 
 
 def _ocr_pdf(path: str) -> str:
+    import io
+
     import pytesseract
     from PIL import Image
-    import io
 
     texts = []
     with pymupdf.open(path) as doc:
@@ -61,7 +62,6 @@ def extract_text(path: str) -> tuple[str, str]:
         text = _extract_pdf_text_layer(path)
         if len(text) >= _MIN_TEXT_LAYER_CHARS:
             return text, "pdf_text_layer"
-
 
         if _ocr_available():
             ocr_text = _ocr_pdf(path)

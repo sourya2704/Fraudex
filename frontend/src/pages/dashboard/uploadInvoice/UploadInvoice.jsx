@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Sidebar from "../../Sidebar/Sidebar";
 import InvoiceProcessing from "./InvoiceProcessing";
+import apiClient from "../../../api/client";
 
 const workflowSteps = [
   {
@@ -42,13 +43,16 @@ function UploadInvoice() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [screen, setScreen] = useState("upload");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedInvoice, setUploadedInvoice] = useState(null);
+  const [validation, setValidation] = useState(null);
   const fileInputRef = useRef(null);
 
   function selectFile(file) {
     if (!file) return;
 
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    const maxFileSize = 25 * 1024 * 1024;
+    const maxFileSize = 10 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
       setSelectedFile(null);
@@ -58,7 +62,7 @@ function UploadInvoice() {
 
     if (file.size > maxFileSize) {
       setSelectedFile(null);
-      setUploadError("File size must be 25 MB or less.");
+      setUploadError("File size must be 10 MB or less.");
       return;
     }
 
@@ -79,12 +83,53 @@ function UploadInvoice() {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
+  async function handleAnalyze() {
+    if (!selectedFile || isUploading) return;
+
+    setUploadError("");
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const { data } = await apiClient.post("/invoices/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setUploadedInvoice(data);
+      const { data: extractedInvoice } = await apiClient.post(
+        `/invoices/${data.id}/extract`,
+      );
+      const { data: validationResult } = await apiClient.post(
+        `/invoices/${data.id}/validate`,
+      );
+
+      setUploadedInvoice(extractedInvoice);
+      setValidation(validationResult);
+      setScreen("processing");
+    } catch (requestError) {
+      setUploadError(
+        requestError.response?.data?.detail ||
+          "Invoice upload failed. Please check the backend and try again.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   if (screen === "processing") {
-    return <InvoiceProcessing fileName={selectedFile?.name || "invoice.pdf"} />;
+    return (
+      <InvoiceProcessing
+        fileName={selectedFile?.name || "invoice.pdf"}
+        invoice={uploadedInvoice}
+        validation={validation}
+      />
+    );
   }
 
   return (
-    <main className="flex min-h-screen bg-[#f5f7fb] text-slate-900">
+    <main className="flex min-h-screen bg-[#f4f5f0] text-slate-900">
       <Sidebar expanded />
       <div className="min-w-0 flex-1">
         <header className="flex flex-col gap-5 border-b border-slate-200 px-5 pb-6 pt-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
@@ -159,7 +204,7 @@ function UploadInvoice() {
                     <span className="text-indigo-600">browse</span>
                   </p>
                   <p className="mt-1.5 text-xs text-slate-400">
-                    Supported formats: PDF, JPG, PNG · Max file size: 25 MB
+                    Supported formats: PDF, JPG, PNG · Max file size: 10 MB
                   </p>
                 </>
               )}
@@ -227,13 +272,13 @@ function UploadInvoice() {
 
           <div className="mt-5 flex justify-end">
             <button
-              className="flex items-center gap-2 rounded-lg bg-indigo-300 px-5 py-2.5 text-xs font-semibold text-white shadow-sm enabled:bg-indigo-600 enabled:hover:bg-indigo-500 disabled:cursor-not-allowed"
-              onClick={() => setScreen("processing")}
-              disabled={!selectedFile}
+              className="flex items-center gap-2 rounded-xl bg-indigo-300 px-5 py-2.5 text-xs font-semibold text-white shadow-sm enabled:bg-[#5967f2] enabled:hover:bg-[#4856df] disabled:cursor-not-allowed"
+              onClick={handleAnalyze}
+              disabled={!selectedFile || isUploading}
               type="button"
             >
               <CheckCircle2 size={15} />
-              Analyze Invoice
+              {isUploading ? "Uploading..." : "Analyze Invoice"}
             </button>
           </div>
         </section>

@@ -7,6 +7,7 @@ import Invoices from './pages/dashboard/invoices/Invoices'
 import InvoiceDetail from './pages/dashboard/invoices/InvoiceDetail'
 import FraudDetection from './pages/dashboard/fraudDetection/FraudDetection'
 import Analytics from './pages/dashboard/analytics/Analytics'
+import Settings from './pages/dashboard/settings/Settings'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       <Route path="/dashboard/invoices/:invoiceId" element={<InvoiceDetail />} />
       <Route path="/dashboard/fraud-detection" element={<FraudDetection />} />
       <Route path="/dashboard/analytics" element={<Analytics />} />
+      <Route path="/dashboard/settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )

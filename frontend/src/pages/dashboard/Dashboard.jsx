@@ -45,7 +45,7 @@ function MetricCard({ label, icon: Icon, tone }) {
 
 function Dashboard() {
   return (
-    <main className="flex min-h-screen bg-[#f5f7fb] text-slate-900">
+    <main className="flex min-h-screen bg-[#f4f5f0] text-slate-900">
       <Sidebar />
       <section className="min-w-0 flex-1 px-5 py-6 sm:px-8 lg:px-10">
         <header className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -73,7 +73,7 @@ function Dashboard() {
               <Bell size={18} />
             </button>
             <Link
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-200 transition-colors hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-xl bg-[#5967f2] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#5967f2]/20 transition-colors hover:bg-[#4856df]"
               to="/dashboard/upload-invoice"
             >
               <FileUp size={16} />
