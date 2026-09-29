@@ -1,7 +1,35 @@
 import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import apiClient from "../../api/client";
 
 function Signup() {
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function updateField(event) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    setIsSubmitting(true);
+
+    try {
+      await apiClient.post("/users/", form);
+      setSuccess("Account created. You can sign in now.");
+      setForm({ name: "", email: "", password: "" });
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to create your account. Check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-[#f7f8f3] text-slate-900 md:flex-row">
       <section className="order-2 flex min-h-[360px] flex-1 flex-col justify-between bg-[#151a31] p-8 text-white md:order-1 md:min-h-screen md:w-3/5 md:p-12">
@@ -73,7 +101,7 @@ function Signup() {
           </p>
           <form
             className="mt-10 space-y-5"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={handleSubmit}
           >
             <div>
               <label
@@ -86,8 +114,11 @@ function Signup() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 id="signup-name"
                 type="text"
+                name="name"
                 placeholder="Your full name"
                 autoComplete="name"
+                value={form.name}
+                onChange={updateField}
               />
             </div>
             <div>
@@ -101,8 +132,11 @@ function Signup() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 id="signup-email"
                 type="email"
+                name="email"
                 placeholder="you@company.com"
                 autoComplete="email"
+                value={form.email}
+                onChange={updateField}
               />
             </div>
             <div>
@@ -116,15 +150,21 @@ function Signup() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 id="signup-password"
                 type="password"
+                name="password"
                 placeholder="Create a password"
                 autoComplete="new-password"
+                value={form.password}
+                onChange={updateField}
               />
             </div>
+            {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
+            {success && <p className="text-sm text-emerald-600" role="status">{success}</p>}
             <button
-              className="w-full rounded-xl bg-[#5967f2] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#5967f2]/20 hover:bg-[#4856df]"
+              className="w-full rounded-xl bg-[#5967f2] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#5967f2]/20 hover:bg-[#4856df] disabled:cursor-wait disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              Create account
+              {isSubmitting ? "Creating account..." : "Create account"}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">

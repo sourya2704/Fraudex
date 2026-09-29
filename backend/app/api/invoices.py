@@ -196,7 +196,7 @@ def delete_invoice(
 def extract_invoice_text(
     invoice_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "FINANCE_MANAGER")),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Run text extraction on an uploaded invoice document.
@@ -253,7 +253,7 @@ def extract_invoice_text(
 def validate_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN", "FINANCE_MANAGER")),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Run deterministic data-integrity validation on an invoice's current

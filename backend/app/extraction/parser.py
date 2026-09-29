@@ -97,11 +97,17 @@ def _to_date(raw: str) -> Optional[date]:
     return None
 
 
-def _find_labeled_value(text: str, labels: list[str], value_pattern: str) -> Optional[str]:
+def _find_labeled_value(
+    text: str,
+    labels: list[str],
+    value_pattern: str,
+    prefer_last: bool = False,
+) -> Optional[str]:
     """
     Find the first value that follows any of the given labels on the same line.
     Labels are matched case-insensitively. Returns the raw matched string.
     """
+    matches = []
     for label in labels:
         # After the label, allow optional junk before the value:
         #   - separators (: - =)
@@ -111,10 +117,9 @@ def _find_labeled_value(text: str, labels: list[str], value_pattern: str) -> Opt
         # then capture the value.
         junk = r"(?:[:\-=]|\([^)]*\)|[$₹€£]|Rs\.?|\s)*"
         pattern = rf"{label}{junk}({value_pattern})"
-        m = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
-        if m:
-            return m.group(1).strip()
-    return None
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE | re.MULTILINE):
+            matches.append(match.group(1).strip())
+    return matches[-1] if prefer_last and matches else (matches[0] if matches else None)
 
 
 # --- public API ------------------------------------------------------------
@@ -147,9 +152,15 @@ def parse_invoice_text(raw_text: str) -> dict:
         text, _DUE_DATE_LABELS, r"[0-9A-Za-z ,\.\-\/]+"
     )
 
-    subtotal_raw = _find_labeled_value(text, _SUBTOTAL_LABELS, _NUMBER_RE)
-    tax_raw = _find_labeled_value(text, _TAX_LABELS, _NUMBER_RE)
-    total_raw = _find_labeled_value(text, _TOTAL_LABELS, _NUMBER_RE)
+    subtotal_raw = _find_labeled_value(
+        text, _SUBTOTAL_LABELS, _NUMBER_RE, prefer_last=True
+    )
+    tax_raw = _find_labeled_value(
+        text, _TAX_LABELS, _NUMBER_RE, prefer_last=True
+    )
+    total_raw = _find_labeled_value(
+        text, _TOTAL_LABELS, _NUMBER_RE, prefer_last=True
+    )
 
     # currency: explicit code, then symbol
     currency = _find_labeled_value(text, [r"currency"], r"[A-Za-z]{3}")

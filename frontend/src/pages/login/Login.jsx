@@ -1,7 +1,35 @@
 import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import apiClient from "../../api/client";
 
 function Login() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function updateField(event) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const { data } = await apiClient.post("/auth/login", form);
+      localStorage.setItem("fraudex-access-token", data.access_token);
+      navigate("/dashboard");
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Unable to sign in. Check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-[#f7f8f3] text-slate-900 md:flex-row">
       <section className="order-2 flex min-h-90 flex-1 flex-col justify-between bg-[#151a31] p-8 text-white md:order-1 md:min-h-screen md:w-3/5 md:p-12">
@@ -73,7 +101,7 @@ function Login() {
           </p>
           <form
             className="mt-10 space-y-5"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={handleSubmit}
           >
             <div>
               <label
@@ -86,8 +114,11 @@ function Login() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 id="login-email"
                 type="email"
+                name="email"
                 placeholder="you@company.com"
                 autoComplete="email"
+                value={form.email}
+                onChange={updateField}
               />
             </div>
             <div>
@@ -106,8 +137,11 @@ function Login() {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 id="login-password"
                 type="password"
+                name="password"
                 placeholder="Enter your password"
                 autoComplete="current-password"
+                value={form.password}
+                onChange={updateField}
               />
             </div>
             <label className="flex items-center gap-2 text-xs text-slate-500">
@@ -117,11 +151,13 @@ function Login() {
               />{" "}
               Remember me for 30 days
             </label>
+            {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
             <button
-              className="w-full rounded-xl bg-[#5967f2] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#5967f2]/20 hover:bg-[#4856df]"
+              className="w-full rounded-xl bg-[#5967f2] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#5967f2]/20 hover:bg-[#4856df] disabled:cursor-wait disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              Login
+              {isSubmitting ? "Signing in..." : "Login"}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">

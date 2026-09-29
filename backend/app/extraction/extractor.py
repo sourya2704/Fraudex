@@ -14,9 +14,6 @@ text first is the foundation everything else builds on.
 import os
 import shutil
 
-import pymupdf
-
-
 class ExtractionError(Exception):
     """Raised when text cannot be extracted from a document."""
 
@@ -39,6 +36,8 @@ def _ocr_available() -> bool:
 
 def _extract_pdf_text_layer(path: str) -> str:
     """Pull the embedded text layer from a PDF. Empty string if none."""
+    import pymupdf
+
     parts = []
     with pymupdf.open(path) as doc:
         for page in doc:
@@ -48,6 +47,7 @@ def _extract_pdf_text_layer(path: str) -> str:
 
 def _ocr_pdf(path: str) -> str:
     """Rasterize each PDF page and OCR it. Requires tesseract."""
+    import pymupdf
     import pytesseract
     from PIL import Image
     import io
