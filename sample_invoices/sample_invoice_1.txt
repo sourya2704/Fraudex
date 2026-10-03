@@ -1,0 +1,60 @@
+═══════════════════════════════════════════════════════════════
+                        INVOICE
+═══════════════════════════════════════════════════════════════
+
+ABC SUPPLIERS LTD
+123 Business Park, Andheri East
+Mumbai, Maharashtra 400069
+GSTIN: 27AABCU9603R1ZM
+Email: contact@abc-suppliers.com
+Phone: +91-9876543210
+
+───────────────────────────────────────────────────────────────
+
+BILL TO:
+XYZ Corporation
+456 Corporate Tower
+Bangalore, Karnataka 560001
+
+───────────────────────────────────────────────────────────────
+
+Invoice Number:     INV-2024-001
+Invoice Date:       15-01-2024
+Due Date:           15-02-2024
+Payment Terms:      Net 30 Days
+
+───────────────────────────────────────────────────────────────
+
+ITEM DESCRIPTION                 QTY    UNIT PRICE      AMOUNT
+───────────────────────────────────────────────────────────────
+
+Office Supplies - Premium         50     ₹200.00      ₹10,000.00
+Quality Paper A4 Reams
+
+───────────────────────────────────────────────────────────────
+
+                                          Subtotal:   ₹10,000.00
+                                          GST @18%:    ₹1,800.00
+                                          ───────────────────────
+                                          TOTAL:      ₹11,800.00
+
+───────────────────────────────────────────────────────────────
+
+Payment Details:
+Bank Name: HDFC Bank
+Account Number: 50200012345678
+IFSC Code: HDFC0001234
+Account Name: ABC Suppliers Ltd
+
+───────────────────────────────────────────────────────────────
+
+Terms & Conditions:
+1. Payment due within 30 days
+2. Late payment subject to 2% monthly interest
+3. Goods once sold will not be taken back
+
+───────────────────────────────────────────────────────────────
+
+                    Thank you for your business!
+
+═══════════════════════════════════════════════════════════════

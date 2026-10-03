@@ -29,3 +29,12 @@ starlette==1.6.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.52.4
+
+# Fraud Detection Dependencies
+pgvector==0.3.6
+numpy==1.26.4
+python-dateutil==2.9.0
+
+# OCR Dependencies (requires: sudo apt install -y tesseract-ocr)
+pytesseract==0.3.13
+Pillow==11.3.0

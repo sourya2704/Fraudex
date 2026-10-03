@@ -22,7 +22,10 @@ from app.extraction.parser import parse_invoice_text
 from app.validation import validate_invoice_fields
 from app.models.invoice import Invoice, InvoiceStatus
 from app.models.user import User
+from app.models.fraud_detection_result import FraudDetectionResult
 from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
+from app.schemas.fraud import FraudDetectionResponse, FraudDetectionSummary
+from app.fraud.detector import FraudDetector
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -299,3 +302,187 @@ def validate_invoice(
         },
         "validation": result.to_dict(),
     }
+
+
+# ---------------------------------------------------------------------------
+# Fraud Detection (NEW)
+# ---------------------------------------------------------------------------
+
+@router.post("/{invoice_id}/detect-fraud", response_model=FraudDetectionResponse)
+def detect_fraud(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Run fraud detection analysis on an invoice.
+    
+    Performs comprehensive fraud checks including:
+    - Duplicate invoice detection
+    - Vendor risk analysis
+    - Amount anomaly detection
+    - Tax validation
+    - Date pattern validation
+    
+    Results are saved to the database and returned.
+    """
+    invoice = _get_invoice_or_404(db, invoice_id)
+
+    # Run fraud detection
+    detector = FraudDetector(db)
+    detection_result = detector.detect_fraud(invoice)
+
+    # Convert to dict for database storage
+    result_dict = detection_result.to_dict()
+
+    # Check if fraud detection result already exists
+    existing = db.query(FraudDetectionResult).filter(
+        FraudDetectionResult.invoice_id == invoice_id
+    ).first()
+
+    if existing:
+        # Update existing result
+        existing.risk_score = result_dict["risk_score"]
+        existing.risk_level = result_dict["risk_level"]
+        existing.fraud_flags = result_dict["fraud_flags"]
+        existing.critical_count = result_dict["critical_count"]
+        existing.high_count = result_dict["high_count"]
+        existing.medium_count = result_dict["medium_count"]
+        existing.low_count = result_dict["low_count"]
+        db_result = existing
+    else:
+        # Create new result
+        db_result = FraudDetectionResult(
+            invoice_id=invoice_id,
+            risk_score=result_dict["risk_score"],
+            risk_level=result_dict["risk_level"],
+            fraud_flags=result_dict["fraud_flags"],
+            critical_count=result_dict["critical_count"],
+            high_count=result_dict["high_count"],
+            medium_count=result_dict["medium_count"],
+            low_count=result_dict["low_count"],
+        )
+        db.add(db_result)
+
+    try:
+        db.commit()
+        db.refresh(db_result)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save fraud detection results: {str(e)}",
+        )
+
+    return db_result
+
+
+@router.get("/{invoice_id}/fraud-detection", response_model=FraudDetectionResponse)
+def get_fraud_detection(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get existing fraud detection results for an invoice.
+    
+    Returns 404 if no fraud detection has been run on this invoice.
+    """
+    _get_invoice_or_404(db, invoice_id)
+
+    fraud_result = db.query(FraudDetectionResult).filter(
+        FraudDetectionResult.invoice_id == invoice_id
+    ).first()
+
+    if not fraud_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No fraud detection results found for this invoice. "
+                   "Run fraud detection first.",
+        )
+
+    return fraud_result
+
+
+@router.get("/{invoice_id}/fraud-summary", response_model=FraudDetectionSummary)
+def get_fraud_summary(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get a brief fraud detection summary for an invoice.
+    
+    If fraud detection hasn't been run, runs it automatically.
+    """
+    invoice = _get_invoice_or_404(db, invoice_id)
+
+    # Check if results exist
+    fraud_result = db.query(FraudDetectionResult).filter(
+        FraudDetectionResult.invoice_id == invoice_id
+    ).first()
+
+    if not fraud_result:
+        # Run fraud detection
+        detector = FraudDetector(db)
+        detection_result = detector.detect_fraud(invoice)
+        result_dict = detection_result.to_dict()
+
+        # Save results
+        fraud_result = FraudDetectionResult(
+            invoice_id=invoice_id,
+            risk_score=result_dict["risk_score"],
+            risk_level=result_dict["risk_level"],
+            fraud_flags=result_dict["fraud_flags"],
+            critical_count=result_dict["critical_count"],
+            high_count=result_dict["high_count"],
+            medium_count=result_dict["medium_count"],
+            low_count=result_dict["low_count"],
+        )
+        db.add(fraud_result)
+        db.commit()
+        db.refresh(fraud_result)
+
+    # Get top concerns
+    top_concerns = []
+    if fraud_result.fraud_flags:
+        # Sort by severity and take top 3
+        severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+        sorted_flags = sorted(
+            fraud_result.fraud_flags,
+            key=lambda f: severity_order.get(f.get("severity", "INFO"), 5)
+        )[:3]
+        top_concerns = [flag.get("message", "") for flag in sorted_flags]
+
+    return FraudDetectionSummary(
+        invoice_id=invoice_id,
+        risk_score=fraud_result.risk_score,
+        risk_level=fraud_result.risk_level,
+        total_flags=len(fraud_result.fraud_flags) if fraud_result.fraud_flags else 0,
+        critical_flags=fraud_result.critical_count,
+        high_flags=fraud_result.high_count,
+        top_concerns=top_concerns,
+    )
+
+
+@router.delete("/{invoice_id}/fraud-detection", status_code=status.HTTP_204_NO_CONTENT)
+def delete_fraud_detection(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
+):
+    """
+    Delete fraud detection results for an invoice.
+    
+    Useful when you want to re-run fraud detection with updated data.
+    Admin only.
+    """
+    fraud_result = db.query(FraudDetectionResult).filter(
+        FraudDetectionResult.invoice_id == invoice_id
+    ).first()
+
+    if fraud_result:
+        db.delete(fraud_result)
+        db.commit()
+
+    return None
