@@ -278,7 +278,8 @@ def validate_invoice(
         "currency": invoice.currency,
     }
 
-    result = validate_invoice_fields(fields)
+    # Pass line items so Rule 8 (line-item subtotal cross-validation) can run.
+    result = validate_invoice_fields(fields, items=invoice.items)
 
     return {
         "invoice_id": invoice.id,

@@ -15,7 +15,7 @@ act on the same structured output.
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 
 # Amounts within this absolute tolerance are treated as equal, to absorb
@@ -61,7 +61,6 @@ class ValidationResult:
 
     @property
     def valid(self) -> bool:
-        # Valid means no ERROR-level issues. Warnings do not fail validation.
         return not any(i.severity == Severity.ERROR for i in self.issues)
 
     def to_dict(self) -> dict:
@@ -77,7 +76,10 @@ def _is_negative(value: Any) -> bool:
     return isinstance(value, Decimal) and value < 0
 
 
-def validate_invoice_fields(fields: dict) -> ValidationResult:
+def validate_invoice_fields(
+    fields: dict,
+    items: Optional[List[Any]] = None,
+) -> ValidationResult:
     """
     Run all deterministic validation rules against parsed invoice fields.
 
@@ -85,6 +87,10 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
       invoice_number, invoice_date, due_date, subtotal, tax,
       total_amount, currency
     Missing values are None.
+
+    `items` is an optional list of InvoiceItem ORM objects (or any object
+    with .line_total attribute). When supplied, Rule 8 cross-validates the
+    sum of line_total values against the invoice subtotal.
     """
     result = ValidationResult()
 
@@ -169,5 +175,26 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
             "Total amount is zero",
             field_name="total_amount",
         )
+
+    # --- Rule 8: line-item totals must sum to subtotal ---
+    # Only runs when items are provided and the invoice has a subtotal.
+    # Skipped silently when items list is empty or None (not yet extracted).
+    if items and isinstance(subtotal, Decimal):
+        item_totals = [
+            Decimal(str(i.line_total))
+            for i in items
+            if i.line_total is not None
+        ]
+        if item_totals:
+            items_sum = sum(item_totals)
+            if abs(items_sum - subtotal) > _AMOUNT_TOLERANCE:
+                result.add(
+                    "LINE_ITEMS_SUBTOTAL_MISMATCH",
+                    Severity.ERROR,
+                    f"Sum of line-item totals ({items_sum}) does not match "
+                    f"invoice subtotal ({subtotal}). "
+                    f"Difference: {abs(items_sum - subtotal)}",
+                    field_name="subtotal",
+                )
 
     return result

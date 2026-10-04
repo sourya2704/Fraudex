@@ -1,33 +1,89 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.database.connection import SessionLocal
+from app.core.dependencies import get_db
+from app.core.security import hash_password, JWT_SECRET_KEY, JWT_ALGORITHM
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
-from app.core.security import hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+# Roles that only an ADMIN is allowed to assign.
+_PRIVILEGED_ROLES = {"ADMIN", "FINANCE_MANAGER"}
 
-def get_db():
-    db = SessionLocal()
+_oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
+
+
+def _get_optional_user(
+    request: Request,
+    bearer_token: Optional[str] = Depends(_oauth2),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """
+    Return the authenticated User if a valid token is present,
+    otherwise return None (does NOT raise 401).
+
+    This lets self-registration work without a token while still
+    allowing admins to create privileged accounts when authenticated.
+    """
+    token = request.cookies.get("fraudex_access_token") or bearer_token
+    if not token:
+        return None
     try:
-        yield db
-    finally:
-        db.close()
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        return db.query(User).filter(User.id == int(user_id)).first()
+    except (JWTError, ValueError):
+        return None
 
 
-@router.post("/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(_get_optional_user),
+):
+    """
+    Register a new user.
+
+    Rules:
+    - Unauthenticated callers can only self-register as EMPLOYEE.
+    - Authenticated EMPLOYEE/FINANCE_MANAGER can also only create EMPLOYEE accounts.
+    - Only an authenticated ADMIN can create ADMIN or FINANCE_MANAGER accounts.
+    - Duplicate email returns 409 Conflict (not 500).
+    """
+    requested_role = user.role.upper()
+
+    if requested_role in _PRIVILEGED_ROLES:
+        if current_user is None or current_user.role != "ADMIN":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Only an ADMIN can assign the '{requested_role}' role",
+            )
+
     new_user = User(
         name=user.name,
         email=user.email,
         password_hash=hash_password(user.password),
-        role=user.role
+        role=requested_role,
     )
 
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.commit()
+        db.refresh(new_user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A user with email '{user.email}' already exists",
+        )
 
     return new_user
