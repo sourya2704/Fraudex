@@ -1,25 +1,30 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database.connection import engine, Base
+
+# Import all models so SQLAlchemy creates their tables on startup
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.models.invoice import Invoice
 from app.models.invoice_item import InvoiceItem
 from app.models.fraud_detection_result import FraudDetectionResult
 from app.models.vendor_stats import VendorStats
+from app.models.invoice_review import InvoiceReview
+from app.models.audit_log import AuditLog
+
 from app.api.users import router as users_router
 from app.api.auth import router as auth_router
 from app.api.vendors import router as vendors_router
 from app.api.invoices import router as invoices_router
 from app.api.fraud_analytics import router as fraud_analytics_router
+from app.api.review import router as review_router
+
 app = FastAPI(
     title="FrauDex API",
-    description="AI Invoice Fraud Detector",
-    version="1.0.0",
-    
+    description="AI Invoice Fraud Detection System",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -27,32 +32,33 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
-    allow_credentials=True,
+    allow_credentials=True,   # required for HttpOnly cookie to be sent back
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Create all tables (idempotent — safe to call on every startup)
 Base.metadata.create_all(bind=engine)
+
+# Routers
 app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(vendors_router)
 app.include_router(invoices_router)
 app.include_router(fraud_analytics_router)
+app.include_router(review_router)
 
-@app.get("/")
+
+@app.get("/", tags=["Health"])
 def root():
-    return {
-        "message": "FrauDex API is running"
-    }
+    return {"message": "FrauDex API is running", "version": "1.1.0"}
 
 
-@app.get("/db-test")
+@app.get("/db-test", tags=["Health"])
 def database_test():
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1"))
-
-        return {
-            "database": "connected",
-            "result": result.scalar()
-        }
+        return {"database": "connected", "result": result.scalar()}

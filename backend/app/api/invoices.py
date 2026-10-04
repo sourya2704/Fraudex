@@ -26,6 +26,7 @@ from app.models.fraud_detection_result import FraudDetectionResult
 from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
 from app.schemas.fraud import FraudDetectionResponse, FraudDetectionSummary
 from app.fraud.detector import FraudDetector
+from app.core.audit import log_action
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -98,6 +99,15 @@ async def upload_invoice(
             os.remove(abs_path)
         raise
 
+    log_action(
+        db,
+        action="INVOICE_UPLOADED",
+        user_id=current_user.id,
+        invoice_id=invoice.id,
+        detail={"filename": file.filename, "size_bytes": len(contents)},
+    )
+    db.commit()
+
     return invoice
 
 
@@ -159,11 +169,25 @@ def update_invoice(
                 detail=f"Vendor {new_vendor_id} does not exist",
             )
 
+    old_status = invoice.status
     for field, value in update_data.items():
         setattr(invoice, field, value)
 
     db.commit()
     db.refresh(invoice)
+
+    # Audit status changes so reviewers can see the full lifecycle.
+    new_status = invoice.status
+    if "status" in update_data and old_status != new_status:
+        log_action(
+            db,
+            action="INVOICE_STATUS_CHANGED",
+            user_id=current_user.id,
+            invoice_id=invoice_id,
+            detail={"old_status": old_status, "new_status": new_status},
+        )
+        db.commit()
+
     return invoice
 
 
@@ -225,6 +249,13 @@ def extract_invoice_text(
         raw_text, method = extract_text(invoice.document_path)
     except ExtractionError as e:
         invoice.status = InvoiceStatus.PROCESSING_FAILED.value
+        log_action(
+            db,
+            action="INVOICE_EXTRACTED",
+            user_id=current_user.id,
+            invoice_id=invoice_id,
+            detail={"success": False, "error": str(e)},
+        )
         db.commit()
         db.refresh(invoice)
         raise HTTPException(
@@ -243,6 +274,15 @@ def extract_invoice_text(
             setattr(invoice, name, value)
 
     invoice.status = InvoiceStatus.ANALYSIS_READY.value
+
+    log_action(
+        db,
+        action="INVOICE_EXTRACTED",
+        user_id=current_user.id,
+        invoice_id=invoice_id,
+        detail={"success": True, "method": method, "chars": len(raw_text)},
+    )
+
     db.commit()
     db.refresh(invoice)
     return invoice
@@ -280,6 +320,19 @@ def validate_invoice(
 
     # Pass line items so Rule 8 (line-item subtotal cross-validation) can run.
     result = validate_invoice_fields(fields, items=invoice.items)
+
+    log_action(
+        db,
+        action="INVOICE_VALIDATED",
+        user_id=current_user.id,
+        invoice_id=invoice_id,
+        detail={
+            "valid": result.valid,
+            "error_count": result.to_dict()["error_count"],
+            "warning_count": result.to_dict()["warning_count"],
+        },
+    )
+    db.commit()
 
     return {
         "invoice_id": invoice.id,
@@ -374,6 +427,19 @@ def detect_fraud(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save fraud detection results: {str(e)}",
         )
+
+    log_action(
+        db,
+        action="FRAUD_CHECK_RUN",
+        user_id=current_user.id,
+        invoice_id=invoice_id,
+        detail={
+            "risk_score": result_dict["risk_score"],
+            "risk_level": result_dict["risk_level"],
+            "total_flags": result_dict.get("total_flags", len(result_dict["fraud_flags"])),
+        },
+    )
+    db.commit()
 
     return db_result
 

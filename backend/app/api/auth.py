@@ -6,6 +6,7 @@ from app.core.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.core.security import verify_password, create_access_token
+from app.core.audit import log_action
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -57,6 +58,10 @@ def login(
 
     response.set_cookie(value=token, **_COOKIE_SETTINGS)
 
+    log_action(db, action="USER_LOGIN", user_id=user.id,
+               detail={"email": user.email, "method": "json"})
+    db.commit()
+
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -80,6 +85,10 @@ def login_swagger(
 
     response.set_cookie(value=token, **_COOKIE_SETTINGS)
 
+    log_action(db, action="USER_LOGIN", user_id=user.id,
+               detail={"email": user.email, "method": "swagger_form"})
+    db.commit()
+
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -88,7 +97,7 @@ def login_swagger(
 # ---------------------------------------------------------------------------
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
-def logout(response: Response):
+def logout(response: Response, db: Session = Depends(get_db)):
     """
     Clear the HttpOnly authentication cookie.
 
@@ -97,6 +106,8 @@ def logout(response: Response):
     is harmless.
     """
     response.delete_cookie(key=_COOKIE_NAME, path="/", samesite="lax")
+    log_action(db, action="USER_LOGOUT")
+    db.commit()
     return {"message": "Logged out successfully"}
 
 

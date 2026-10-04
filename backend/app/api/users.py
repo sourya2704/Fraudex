@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
 from app.core.security import hash_password, JWT_SECRET_KEY, JWT_ALGORITHM
+from app.core.audit import log_action
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 
@@ -85,5 +86,13 @@ def create_user(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"A user with email '{user.email}' already exists",
         )
+
+    log_action(
+        db,
+        action="USER_REGISTERED",
+        user_id=new_user.id,
+        detail={"email": new_user.email, "role": new_user.role},
+    )
+    db.commit()
 
     return new_user
