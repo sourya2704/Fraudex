@@ -1,8 +1,7 @@
-import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiClient from "../../api/client";
+import { Link, useNavigate } from "react-router-dom";
+import apiClient, { setMemoryToken } from "../../api/client";
 
 function Login() {
   const navigate = useNavigate();
@@ -21,7 +20,9 @@ function Login() {
 
     try {
       const { data } = await apiClient.post("/auth/login", form);
-      localStorage.setItem("fraudex-access-token", data.access_token);
+      // Store token in memory so all subsequent requests send Bearer header
+      // (HttpOnly cookie handles it in production, memory token is the dev fallback)
+      setMemoryToken(data.access_token);
       navigate("/dashboard");
     } catch (requestError) {
       setError(requestError.response?.data?.detail || "Unable to sign in. Check your connection and try again.");

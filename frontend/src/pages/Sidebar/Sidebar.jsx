@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   FileText,
   FileUp,
@@ -14,12 +15,13 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const navigationItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Upload Invoice", icon: FileUp, href: "/dashboard/upload-invoice" },
-  { label: "Invoices", icon: FileText, href: "/dashboard/invoices" },
-  { label: "Fraud Detection", icon: ShieldAlert, href: "/dashboard/fraud-detection" },
-  { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
-  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+  { label: "Dashboard",       icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Upload Invoice",  icon: FileUp,           href: "/dashboard/upload-invoice" },
+  { label: "Invoices",        icon: FileText,         href: "/dashboard/invoices" },
+  { label: "Fraud Detection", icon: ShieldAlert,      href: "/dashboard/fraud-detection" },
+  { label: "Analytics",       icon: BarChart3,        href: "/dashboard/analytics" },
+  { label: "Audit Log",       icon: Activity,         href: "/dashboard/audit" },
+  { label: "Settings",        icon: Settings,         href: "/dashboard/settings" },
 ];
 
 function Sidebar({ expanded = true }) {

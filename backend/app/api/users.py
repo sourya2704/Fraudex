@@ -14,24 +14,15 @@ from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# Roles that only an ADMIN is allowed to assign.
 _PRIVILEGED_ROLES = {"ADMIN", "FINANCE_MANAGER"}
 
 _oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
-
 
 def _get_optional_user(
     request: Request,
     bearer_token: Optional[str] = Depends(_oauth2),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
-    """
-    Return the authenticated User if a valid token is present,
-    otherwise return None (does NOT raise 401).
-
-    This lets self-registration work without a token while still
-    allowing admins to create privileged accounts when authenticated.
-    """
     token = request.cookies.get("fraudex_access_token") or bearer_token
     if not token:
         return None
@@ -44,22 +35,12 @@ def _get_optional_user(
     except (JWTError, ValueError):
         return None
 
-
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(_get_optional_user),
 ):
-    """
-    Register a new user.
-
-    Rules:
-    - Unauthenticated callers can only self-register as EMPLOYEE.
-    - Authenticated EMPLOYEE/FINANCE_MANAGER can also only create EMPLOYEE accounts.
-    - Only an authenticated ADMIN can create ADMIN or FINANCE_MANAGER accounts.
-    - Duplicate email returns 409 Conflict (not 500).
-    """
     requested_role = user.role.upper()
 
     if requested_role in _PRIVILEGED_ROLES:

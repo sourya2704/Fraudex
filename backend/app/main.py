@@ -4,7 +4,6 @@ from sqlalchemy import text
 
 from app.database.connection import engine, Base
 
-# Import all models so SQLAlchemy creates their tables on startup
 from app.models.user import User
 from app.models.vendor import Vendor
 from app.models.invoice import Invoice
@@ -35,15 +34,13 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5174",
     ],
-    allow_credentials=True,   # required for HttpOnly cookie to be sent back
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Create all tables (idempotent — safe to call on every startup)
 Base.metadata.create_all(bind=engine)
 
-# Routers
 app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(vendors_router)
@@ -51,11 +48,9 @@ app.include_router(invoices_router)
 app.include_router(fraud_analytics_router)
 app.include_router(review_router)
 
-
 @app.get("/", tags=["Health"])
 def root():
     return {"message": "FrauDex API is running", "version": "1.1.0"}
-
 
 @app.get("/db-test", tags=["Health"])
 def database_test():

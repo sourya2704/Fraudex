@@ -30,7 +30,6 @@ from app.core.audit import log_action
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
-
 @router.post(
     "/upload",
     response_model=InvoiceResponse,
@@ -41,13 +40,6 @@ async def upload_invoice(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Upload an invoice document (PDF / PNG / JPG).
-
-    Flow: validate type & size -> store file -> create an invoice record
-    with status DOCUMENTS_UPLOADED -> return the created invoice.
-    """
-    # --- validate extension / content type ---
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -62,7 +54,6 @@ async def upload_invoice(
                    f"extension '{ext}'",
         )
 
-    # --- read + validate size ---
     contents = await file.read()
     if len(contents) == 0:
         raise HTTPException(
@@ -76,13 +67,11 @@ async def upload_invoice(
                    f"{MAX_FILE_SIZE // (1024 * 1024)} MB",
         )
 
-    # --- store the file ---
     ensure_storage_dir()
     abs_path, _ = build_stored_path(file.filename)
     with open(abs_path, "wb") as f:
         f.write(contents)
 
-    # --- create the invoice record ---
     invoice = Invoice(
         uploaded_by=current_user.id,
         status=InvoiceStatus.DOCUMENTS_UPLOADED.value,
@@ -93,7 +82,6 @@ async def upload_invoice(
         db.commit()
         db.refresh(invoice)
     except Exception:
-        # If the DB write fails, don't leave an orphan file on disk.
         db.rollback()
         if os.path.exists(abs_path):
             os.remove(abs_path)
@@ -110,11 +98,6 @@ async def upload_invoice(
 
     return invoice
 
-
-# ---------------------------------------------------------------------------
-# CRUD (STEP 5)
-# ---------------------------------------------------------------------------
-
 def _get_invoice_or_404(db: Session, invoice_id: int) -> Invoice:
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if invoice is None:
@@ -124,14 +107,12 @@ def _get_invoice_or_404(db: Session, invoice_id: int) -> Invoice:
         )
     return invoice
 
-
 @router.get("/", response_model=list[InvoiceResponse])
 def list_invoices(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return db.query(Invoice).order_by(Invoice.id.desc()).all()
-
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 def get_invoice(
@@ -140,7 +121,6 @@ def get_invoice(
     current_user: User = Depends(get_current_user),
 ):
     return _get_invoice_or_404(db, invoice_id)
-
 
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
 def update_invoice(
@@ -151,14 +131,11 @@ def update_invoice(
 ):
     invoice = _get_invoice_or_404(db, invoice_id)
 
-    # Only apply fields the client actually sent.
     update_data = invoice_update.model_dump(exclude_unset=True)
 
-    # status comes through as an InvoiceStatus enum; store its string value.
     if "status" in update_data and update_data["status"] is not None:
         update_data["status"] = update_data["status"].value
 
-    # If vendor_id is being set, make sure the vendor exists.
     new_vendor_id = update_data.get("vendor_id")
     if new_vendor_id is not None:
         from app.models.vendor import Vendor
@@ -176,7 +153,6 @@ def update_invoice(
     db.commit()
     db.refresh(invoice)
 
-    # Audit status changes so reviewers can see the full lifecycle.
     new_status = invoice.status
     if "status" in update_data and old_status != new_status:
         log_action(
@@ -190,7 +166,6 @@ def update_invoice(
 
     return invoice
 
-
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_invoice(
     invoice_id: int,
@@ -199,13 +174,11 @@ def delete_invoice(
 ):
     invoice = _get_invoice_or_404(db, invoice_id)
 
-    # Remember the file path so we can remove it after the DB row is gone.
     doc_path = invoice.document_path
 
-    db.delete(invoice)  # invoice_items cascade via the relationship / FK
+    db.delete(invoice)
     db.commit()
 
-    # Best-effort cleanup of the stored document.
     if doc_path and os.path.exists(doc_path):
         try:
             os.remove(doc_path)
@@ -214,25 +187,12 @@ def delete_invoice(
 
     return None
 
-
-# ---------------------------------------------------------------------------
-# OCR / text extraction (STEP 6)
-# ---------------------------------------------------------------------------
-
 @router.post("/{invoice_id}/extract", response_model=InvoiceResponse)
 def extract_invoice_text(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Run text extraction on an uploaded invoice document.
-
-    Sets status PROCESSING, extracts the raw text (PDF text layer first,
-    OCR fallback), stores it on the invoice, and moves the status to
-    ANALYSIS_READY. On any extraction error the status becomes
-    PROCESSING_FAILED and a 422 is returned with the reason.
-    """
     invoice = _get_invoice_or_404(db, invoice_id)
 
     if not invoice.document_path:
@@ -241,7 +201,6 @@ def extract_invoice_text(
             detail="Invoice has no uploaded document to extract from",
         )
 
-    # Mark as processing so the state is visible even if extraction is slow.
     invoice.status = InvoiceStatus.PROCESSING.value
     db.commit()
 
@@ -265,9 +224,6 @@ def extract_invoice_text(
 
     invoice.raw_text = raw_text
 
-    # Parse structured fields from the raw text and fill in any that the
-    # invoice does not already have. We do not overwrite values a user may
-    # have set manually via PUT — extraction only fills blanks.
     parsed = parse_invoice_text(raw_text)["fields"]
     for name, value in parsed.items():
         if value is not None and getattr(invoice, name, None) in (None, ""):
@@ -287,25 +243,12 @@ def extract_invoice_text(
     db.refresh(invoice)
     return invoice
 
-
-# ---------------------------------------------------------------------------
-# Deterministic validation (STEP 7)
-# ---------------------------------------------------------------------------
-
 @router.post("/{invoice_id}/validate")
 def validate_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Run deterministic data-integrity validation on an invoice's current
-    structured fields (required fields, amount consistency, date sanity).
-
-    This is NOT fraud detection — it checks that the invoice data is
-    internally consistent. Returns a structured result with issues,
-    severities, and an overall `valid` flag.
-    """
     invoice = _get_invoice_or_404(db, invoice_id)
 
     fields = {
@@ -318,7 +261,6 @@ def validate_invoice(
         "currency": invoice.currency,
     }
 
-    # Pass line items so Rule 8 (line-item subtotal cross-validation) can run.
     result = validate_invoice_fields(fields, items=invoice.items)
 
     log_action(
@@ -357,45 +299,24 @@ def validate_invoice(
         "validation": result.to_dict(),
     }
 
-
-# ---------------------------------------------------------------------------
-# Fraud Detection (NEW)
-# ---------------------------------------------------------------------------
-
 @router.post("/{invoice_id}/detect-fraud", response_model=FraudDetectionResponse)
 def detect_fraud(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Run fraud detection analysis on an invoice.
-    
-    Performs comprehensive fraud checks including:
-    - Duplicate invoice detection
-    - Vendor risk analysis
-    - Amount anomaly detection
-    - Tax validation
-    - Date pattern validation
-    
-    Results are saved to the database and returned.
-    """
     invoice = _get_invoice_or_404(db, invoice_id)
 
-    # Run fraud detection
     detector = FraudDetector(db)
     detection_result = detector.detect_fraud(invoice)
 
-    # Convert to dict for database storage
     result_dict = detection_result.to_dict()
 
-    # Check if fraud detection result already exists
     existing = db.query(FraudDetectionResult).filter(
         FraudDetectionResult.invoice_id == invoice_id
     ).first()
 
     if existing:
-        # Update existing result
         existing.risk_score = result_dict["risk_score"]
         existing.risk_level = result_dict["risk_level"]
         existing.fraud_flags = result_dict["fraud_flags"]
@@ -405,7 +326,6 @@ def detect_fraud(
         existing.low_count = result_dict["low_count"]
         db_result = existing
     else:
-        # Create new result
         db_result = FraudDetectionResult(
             invoice_id=invoice_id,
             risk_score=result_dict["risk_score"],
@@ -443,18 +363,12 @@ def detect_fraud(
 
     return db_result
 
-
 @router.get("/{invoice_id}/fraud-detection", response_model=FraudDetectionResponse)
 def get_fraud_detection(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Get existing fraud detection results for an invoice.
-    
-    Returns 404 if no fraud detection has been run on this invoice.
-    """
     _get_invoice_or_404(db, invoice_id)
 
     fraud_result = db.query(FraudDetectionResult).filter(
@@ -470,32 +384,23 @@ def get_fraud_detection(
 
     return fraud_result
 
-
 @router.get("/{invoice_id}/fraud-summary", response_model=FraudDetectionSummary)
 def get_fraud_summary(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Get a brief fraud detection summary for an invoice.
-    
-    If fraud detection hasn't been run, runs it automatically.
-    """
     invoice = _get_invoice_or_404(db, invoice_id)
 
-    # Check if results exist
     fraud_result = db.query(FraudDetectionResult).filter(
         FraudDetectionResult.invoice_id == invoice_id
     ).first()
 
     if not fraud_result:
-        # Run fraud detection
         detector = FraudDetector(db)
         detection_result = detector.detect_fraud(invoice)
         result_dict = detection_result.to_dict()
 
-        # Save results
         fraud_result = FraudDetectionResult(
             invoice_id=invoice_id,
             risk_score=result_dict["risk_score"],
@@ -510,10 +415,8 @@ def get_fraud_summary(
         db.commit()
         db.refresh(fraud_result)
 
-    # Get top concerns
     top_concerns = []
     if fraud_result.fraud_flags:
-        # Sort by severity and take top 3
         severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
         sorted_flags = sorted(
             fraud_result.fraud_flags,
@@ -531,19 +434,12 @@ def get_fraud_summary(
         top_concerns=top_concerns,
     )
 
-
 @router.delete("/{invoice_id}/fraud-detection", status_code=status.HTTP_204_NO_CONTENT)
 def delete_fraud_detection(
     invoice_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN")),
 ):
-    """
-    Delete fraud detection results for an invoice.
-    
-    Useful when you want to re-run fraud detection with updated data.
-    Admin only.
-    """
     fraud_result = db.query(FraudDetectionResult).filter(
         FraudDetectionResult.invoice_id == invoice_id
     ).first()

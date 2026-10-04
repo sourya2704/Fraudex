@@ -3,13 +3,9 @@ from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
-
-# Valid review decisions (mirrors what the endpoint accepts).
 _VALID_DECISIONS = {"APPROVE", "REJECT", "REQUEST_FURTHER_REVIEW"}
 
-
 class ReviewRequest(BaseModel):
-    """Body sent by the reviewer when submitting a decision."""
 
     decision: str
     reason: str
@@ -32,9 +28,7 @@ class ReviewRequest(BaseModel):
             raise ValueError("Reason must not be blank — a written justification is required")
         return v.strip()
 
-
 class ReviewResponse(BaseModel):
-    """Returned after a review decision is saved."""
 
     id: int
     invoice_id: int
@@ -46,9 +40,7 @@ class ReviewResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class AuditLogResponse(BaseModel):
-    """Single audit log entry."""
 
     id: int
     user_id: Optional[int]

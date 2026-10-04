@@ -1,8 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
-
 _VALID_ROLES = {"ADMIN", "FINANCE_MANAGER", "EMPLOYEE"}
-
 
 class UserCreate(BaseModel):
     name: str
@@ -33,7 +31,6 @@ class UserCreate(BaseModel):
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters")
         return v
-
 
 class UserResponse(BaseModel):
     id: int

@@ -1,15 +1,3 @@
-"""
-Human Review & Audit Trail API
-
-Human Review:
-    POST /invoices/{id}/review   — submit APPROVE / REJECT / REQUEST_FURTHER_REVIEW
-
-Audit Trail:
-    GET  /audit/{invoice_id}          — full event history for one invoice
-    GET  /audit/user/{user_id}        — activity log for one user (ADMIN only)
-    GET  /audit/                      — recent audit log across all invoices (ADMIN only)
-"""
-
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -26,9 +14,12 @@ from app.schemas.review import AuditLogResponse, ReviewRequest, ReviewResponse
 
 router = APIRouter(tags=["Review & Audit"])
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
+_DECISION_TO_STATUS = {
+    "APPROVE": InvoiceStatus.DECIDED.value,
+    "REJECT": InvoiceStatus.DECIDED.value,
+    "REQUEST_FURTHER_REVIEW": InvoiceStatus.UNDER_REVIEW.value,
+}
+
 
 def _get_invoice_or_404(db: Session, invoice_id: int) -> Invoice:
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
@@ -38,18 +29,6 @@ def _get_invoice_or_404(db: Session, invoice_id: int) -> Invoice:
             detail=f"Invoice {invoice_id} not found",
         )
     return invoice
-
-
-# ---------------------------------------------------------------------------
-# Human Review
-# ---------------------------------------------------------------------------
-
-# Map review decision → invoice status transition
-_DECISION_TO_STATUS = {
-    "APPROVE": InvoiceStatus.DECIDED.value,
-    "REJECT": InvoiceStatus.DECIDED.value,
-    "REQUEST_FURTHER_REVIEW": InvoiceStatus.UNDER_REVIEW.value,
-}
 
 
 @router.post(
@@ -64,21 +43,9 @@ def review_invoice(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("ADMIN", "FINANCE_MANAGER")),
 ):
-    """
-    Submit a review decision for an invoice.
-
-    Allowed decisions:
-    - **APPROVE** — invoice is accepted; status → DECIDED
-    - **REJECT**  — invoice is rejected; status → DECIDED
-    - **REQUEST_FURTHER_REVIEW** — flag for more investigation; status → UNDER_REVIEW
-
-    A non-blank `reason` is mandatory. Only ADMIN and FINANCE_MANAGER can call this.
-    """
     invoice = _get_invoice_or_404(db, invoice_id)
-
     old_status = invoice.status
 
-    # Upsert: update existing review row or create a new one
     existing = (
         db.query(InvoiceReview)
         .filter(InvoiceReview.invoice_id == invoice_id)
@@ -99,11 +66,9 @@ def review_invoice(
         )
         db.add(review)
 
-    # Update invoice status based on decision
     new_status = _DECISION_TO_STATUS[body.decision]
     invoice.status = new_status
 
-    # Audit: review decision
     log_action(
         db,
         action="REVIEW_DECISION",
@@ -117,7 +82,6 @@ def review_invoice(
         },
     )
 
-    # Audit: status change (only if status actually changed)
     if old_status != new_status:
         log_action(
             db,
@@ -142,9 +106,7 @@ def get_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return the latest review decision for an invoice, or 404 if not yet reviewed."""
     _get_invoice_or_404(db, invoice_id)
-
     review = (
         db.query(InvoiceReview)
         .filter(InvoiceReview.invoice_id == invoice_id)
@@ -158,10 +120,6 @@ def get_review(
     return review
 
 
-# ---------------------------------------------------------------------------
-# Audit Trail endpoints
-# ---------------------------------------------------------------------------
-
 @router.get(
     "/audit/{invoice_id}",
     response_model=List[AuditLogResponse],
@@ -172,9 +130,7 @@ def get_invoice_audit(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return all audit log entries for a specific invoice, newest first."""
     _get_invoice_or_404(db, invoice_id)
-
     logs = (
         db.query(AuditLog)
         .filter(AuditLog.invoice_id == invoice_id)
@@ -195,7 +151,6 @@ def get_user_audit(
     current_user: User = Depends(require_role("ADMIN")),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """Return the most recent audit log entries for a specific user. ADMIN only."""
     logs = (
         db.query(AuditLog)
         .filter(AuditLog.user_id == user_id)
@@ -217,7 +172,6 @@ def get_all_audit(
     limit: int = Query(100, ge=1, le=500),
     action: Optional[str] = Query(None, description="Filter by action code"),
 ):
-    """Return the most recent system-wide audit entries. ADMIN only."""
     q = db.query(AuditLog).order_by(desc(AuditLog.timestamp))
     if action:
         q = q.filter(AuditLog.action == action.upper())
