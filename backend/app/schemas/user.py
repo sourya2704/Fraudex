@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
 
 _VALID_ROLES = {"ADMIN", "FINANCE_MANAGER", "EMPLOYEE"}

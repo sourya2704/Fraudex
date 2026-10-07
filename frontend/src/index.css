@@ -1,190 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+/* ── CSS Custom Properties ───────────────────────────────────────────────── */
 :root {
-  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  color: #141827;
-  background: #f4f5f0;
-  font-synthesis: none;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* Brand */
+  --brand:        #6366f1;
+  --brand-light:  #818cf8;
+  --brand-dark:   #4f46e5;
+  --accent:       #c7f36b;
+
+  /* Backgrounds */
+  --bg-base:      #f8f9fc;
+  --bg-card:      #ffffff;
+  --bg-subtle:    #f1f3f9;
+
+  /* Borders */
+  --border:       #e4e7f0;
+  --border-focus: #6366f1;
+
+  /* Text */
+  --text-primary:   #0f1117;
+  --text-secondary: #4b5468;
+  --text-muted:     #8b92a5;
+
+  /* Sidebar */
+  --sidebar-bg:   #0d1117;
+  --sidebar-border: rgba(255,255,255,0.06);
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(15,17,23,0.06), 0 1px 2px rgba(15,17,23,0.04);
+  --shadow-md:  0 4px 16px rgba(15,17,23,0.08), 0 2px 6px rgba(15,17,23,0.04);
+  --shadow-lg:  0 12px 40px rgba(15,17,23,0.10), 0 4px 12px rgba(15,17,23,0.06);
+  --shadow-brand: 0 8px 24px rgba(99,102,241,0.28);
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-::selection {
-  background: #c7f36b;
-  color: #141827;
-}
-
 body {
-  min-width: 320px;
-  min-height: 100vh;
   margin: 0;
-  background: #f6f7f4;
+  min-height: 100vh;
+  background: var(--bg-base);
 }
 
-button,
-input,
-select {
-  font: inherit;
-}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
 
-button {
-  cursor: pointer;
-}
+/* ── Selection ───────────────────────────────────────────────────────────── */
+::selection { background: var(--accent); color: #0f1117; }
 
-button:disabled {
-  cursor: not-allowed;
-}
-
-main {
-  letter-spacing: 0;
-}
-
-main>div:not(.min-w-0) {
-  border-color: #e5e7f0;
-}
-
-/* Shared surface treatment for the existing Tailwind-based pages. */
-main [class~="bg-white"] {
-  border-color: #e4e7f0;
-  box-shadow: 0 8px 24px rgba(32, 39, 68, 0.05);
-  border-radius: 0.75rem;
-}
-
-main [class~="border-slate-200"] {
-  border-color: #e4e7f0;
-}
-
-main [class~="bg-slate-50"] {
-  background-color: #f1f3f8;
-}
-
-main input,
-main select {
-  border-radius: 0.7rem;
-}
-
-main input:focus,
-main select:focus {
-  border-color: #5967f2;
-  box-shadow: 0 0 0 4px rgba(89, 103, 242, 0.14);
-}
-
-main button:not(:disabled),
-main a {
-  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
-}
-
-main button:not(:disabled):hover,
-main a:hover {
-  transform: translateY(-1px);
-}
-
-::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-
-::-webkit-scrollbar-track {
-  background: #eef0f7;
-}
-
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  border: 2px solid #eef0f7;
+  background: #d1d5e0;
   border-radius: 999px;
-  background: #b8bdd0;
+}
+::-webkit-scrollbar-thumb:hover { background: #a8afc4; }
+
+/* ── Card surface ─────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
-html.dark body {
-  color: #edf0ff;
-  background: #101522;
+/* ── Input base ──────────────────────────────────────────────────────────── */
+.input-base {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-base:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.input-base::placeholder { color: var(--text-muted); }
+
+/* ── Button base ─────────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand);
+  box-shadow: var(--shadow-brand);
+  border: none;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(99,102,241,0.32);
+}
+.btn-primary:disabled { opacity: 0.55; box-shadow: none; }
+
+/* ── Glassmorphism card (auth pages) ─────────────────────────────────────── */
+.glass-card {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15,17,23,0.12), 0 4px 16px rgba(15,17,23,0.06);
 }
 
-html.dark main {
-  color: #edf0ff;
-  background-color: transparent;
+/* ── Badge helpers ───────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
 }
 
-html.dark main [class~="bg-white"] {
-  background: #171d2d;
-  border-color: rgba(112, 124, 180, 0.27);
-  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+/* ── Gradient text ───────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-html.dark main [class~="bg-slate-50"],
-html.dark main [class~="bg-slate-50\/70"],
-html.dark main [class~="bg-slate-50\/60"] {
-  background-color: rgba(37, 43, 70, 0.72);
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+html.dark {
+  --bg-base:      #0d1117;
+  --bg-card:      #161b27;
+  --bg-subtle:    #1e2535;
+  --border:       rgba(255,255,255,0.07);
+  --text-primary:   #eef0f8;
+  --text-secondary: #a0a8bf;
+  --text-muted:     #5a6480;
 }
 
-html.dark main [class~="bg-\[#f4f5f0\]"] {
-  background-color: transparent;
+html.dark body { background: var(--bg-base); }
+html.dark .card { background: var(--bg-card); border-color: var(--border); }
+html.dark .glass-card {
+  background: rgba(22,27,39,0.85);
+  border-color: rgba(255,255,255,0.08);
 }
-
-html.dark main [class~="border-slate-200"],
-html.dark main [class~="border-slate-100"] {
-  border-color: #303754;
+html.dark .input-base {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
-
-html.dark main [class~="text-slate-900"],
-html.dark main [class~="text-slate-950"],
-html.dark main [class~="text-slate-800"] {
-  color: #edf0ff;
-}
-
-html.dark main [class~="text-slate-700"],
-html.dark main [class~="text-slate-600"] {
-  color: #c2c8e0;
-}
-
-html.dark main [class~="text-slate-500"],
-html.dark main [class~="text-slate-400"] {
-  color: #929ab8;
-}
-
-html.dark main [class~="text-indigo-600"],
-html.dark main [class~="text-indigo-500"] {
-  color: #aeb7ff;
-}
-
-html.dark main [class~="text-emerald-600"] {
-  color: #8ce6bf;
-}
-
-html.dark main [class~="text-rose-600"] {
-  color: #ff9daa;
-}
-
-html.dark main [class~="text-amber-600"] {
-  color: #ffd27a;
-}
-
-html.dark main input,
-html.dark main select {
-  color: #edf0ff;
-  background-color: #171c31;
-  border-color: #3a4262;
-}
-
-html.dark main input::placeholder {
-  color: #77809f;
-}
-
-html.dark main [class~="border-b"] {
-  border-color: rgba(112, 124, 180, 0.2);
-}
-
-html.dark main [class~="shadow-sm"] {
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.035);
-}
-
-html.dark ::-webkit-scrollbar-track {
-  background: #151a31;
-}
-
-html.dark ::-webkit-scrollbar-thumb {
-  border-color: #151a31;
-  background: #454d70;
-}
+html.dark ::-webkit-scrollbar-thumb { background: #2a3047; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4260; }

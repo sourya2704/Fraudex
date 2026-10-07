@@ -1,290 +1,176 @@
+import { Bell, CheckCircle2, FileText, Search, UploadCloud, X, Zap } from "lucide-react";
 import { useRef, useState } from "react";
-import {
-  Bell,
-  CheckCircle2,
-  FileText,
-  Search,
-  UploadCloud,
-  X,
-} from "lucide-react";
 import Sidebar from "../../Sidebar/Sidebar";
 import InvoiceProcessing from "./InvoiceProcessing";
 import apiClient from "../../../api/client";
 
-const workflowSteps = [
-  {
-    number: "1",
-    title: "Upload Invoice",
-    description: "Upload your PDF or image invoice file",
-  },
-  {
-    number: "2",
-    title: "Extract Invoice Data",
-    description: "AI extracts vendor, amount, and dates",
-  },
-  {
-    number: "3",
-    title: "Validate Information",
-    description: "Cross-reference with known records",
-  },
-  {
-    number: "4",
-    title: "Analyze Fraud Patterns",
-    description: "Detect anomalies and flag duplicates",
-  },
-  {
-    number: "5",
-    title: "Generate Risk Score",
-    description: "Produce a detailed fraud risk report",
-  },
+const STEPS = [
+  { n:"1", title:"Upload File",        desc:"PDF or image invoice" },
+  { n:"2", title:"Extract Data",       desc:"AI reads fields automatically" },
+  { n:"3", title:"Validate",           desc:"Cross-check consistency" },
+  { n:"4", title:"Detect Fraud",       desc:"Flag anomalies & patterns" },
+  { n:"5", title:"Risk Score",         desc:"Get an explainable report" },
 ];
 
-function UploadInvoice() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadError, setUploadError] = useState("");
-  const [screen, setScreen] = useState("upload");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedInvoice, setUploadedInvoice] = useState(null);
+export default function UploadInvoice() {
+  const [file,       setFile]       = useState(null);
+  const [error,      setError]      = useState("");
+  const [screen,     setScreen]     = useState("upload");
+  const [uploading,  setUploading]  = useState(false);
+  const [invoice,    setInvoice]    = useState(null);
   const [validation, setValidation] = useState(null);
-  const fileInputRef = useRef(null);
+  const [dragOver,   setDragOver]   = useState(false);
+  const inputRef = useRef(null);
 
-  function selectFile(file) {
-    if (!file) return;
-
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    const maxFileSize = 10 * 1024 * 1024;
-
-    if (!allowedTypes.includes(file.type)) {
-      setSelectedFile(null);
-      setUploadError("Please choose a PDF, JPG, or PNG file.");
-      return;
+  function pick(f) {
+    if (!f) return;
+    if (!["application/pdf","image/jpeg","image/png"].includes(f.type)) {
+      setFile(null); setError("Please choose a PDF, JPG, or PNG file."); return;
     }
-
-    if (file.size > maxFileSize) {
-      setSelectedFile(null);
-      setUploadError("File size must be 10 MB or less.");
-      return;
-    }
-
-    setSelectedFile(file);
-    setUploadError("");
+    if (f.size > 10*1024*1024) { setFile(null); setError("File must be 10 MB or less."); return; }
+    setFile(f); setError("");
   }
 
-  function handleFileChange(event) {
-    selectFile(event.target.files?.[0]);
-  }
-
-  function handleDrop(event) {
-    event.preventDefault();
-    selectFile(event.dataTransfer.files?.[0]);
-  }
-
-  function formatFileSize(bytes) {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  }
-
-  async function handleAnalyze() {
-    if (!selectedFile || isUploading) return;
-
-    setUploadError("");
-    setIsUploading(true);
-
+  async function analyze() {
+    if (!file||uploading) return;
+    setError(""); setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const { data } = await apiClient.post("/invoices/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setUploadedInvoice(data);
-      const { data: extractedInvoice } = await apiClient.post(
-        `/invoices/${data.id}/extract`,
-      );
-      const { data: validationResult } = await apiClient.post(
-        `/invoices/${data.id}/validate`,
-      );
-
-      setUploadedInvoice(extractedInvoice);
-      setValidation(validationResult);
-      setScreen("processing");
-    } catch (requestError) {
-      setUploadError(
-        requestError.response?.data?.detail ||
-          "Invoice upload failed. Please check the backend and try again.",
-      );
-    } finally {
-      setIsUploading(false);
-    }
+      const fd = new FormData(); fd.append("file", file);
+      const { data: inv } = await apiClient.post("/invoices/upload", fd, { headers:{"Content-Type":"multipart/form-data"} });
+      const { data: extracted } = await apiClient.post(`/invoices/${inv.id}/extract`);
+      const { data: val }       = await apiClient.post(`/invoices/${inv.id}/validate`);
+      setInvoice(extracted); setValidation(val); setScreen("processing");
+    } catch(e) {
+      setError(e.response?.data?.detail||"Upload failed. Check your connection and try again.");
+    } finally { setUploading(false); }
   }
 
-  if (screen === "processing") {
-    return (
-      <InvoiceProcessing
-        fileName={selectedFile?.name || "invoice.pdf"}
-        invoice={uploadedInvoice}
-        validation={validation}
-      />
-    );
-  }
+  if (screen==="processing") return (
+    <InvoiceProcessing fileName={file?.name||"invoice.pdf"} invoice={invoice} validation={validation}/>
+  );
 
   return (
-    <main className="flex min-h-screen bg-[#f4f5f0] text-slate-900">
-      <Sidebar expanded />
+    <main className="flex min-h-screen bg-[#f5f6fb]">
+      <Sidebar expanded/>
       <div className="min-w-0 flex-1">
-        <header className="flex flex-col gap-5 border-b border-slate-200 px-5 pb-6 pt-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
+
+        {/* header */}
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
           <div>
-            <p className="text-sm font-medium text-indigo-600">
-              Invoice workspace
-            </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Upload invoice
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Add an invoice to begin your Fraudex review.
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Invoice workspace</p>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900">Upload Invoice</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800"
-              title="Search"
-              type="button"
-            >
-              <Search size={18} />
-            </button>
-            <button
-              className="relative grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800"
-              title="Notifications"
-              type="button"
-            >
-              <Bell size={18} />
-            </button>
+          <div className="flex items-center gap-2">
+            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Search size={15}/></button>
+            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Bell size={15}/></button>
           </div>
         </header>
 
-        <section className="mx-auto max-w-4xl px-5 py-7 sm:px-8 lg:px-10 lg:py-8">
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-7">
-            <h2 className="text-base font-semibold text-slate-900">
-              Upload your invoice
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Drag &amp; drop your invoice here or browse your files
-            </p>
+        <div className="mx-auto max-w-3xl space-y-5 px-5 py-7 sm:px-8">
+
+          {/* Drop zone */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">Upload your invoice</h2>
+            <p className="mt-1 text-sm text-slate-400">Drag &amp; drop or browse — PDF, JPG, PNG · Max 10 MB</p>
+
             <div
-              className={`mt-5 flex min-h-[182px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 text-center transition-colors ${selectedFile ? "border-emerald-300 bg-emerald-50/40" : "border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/20"}`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={handleDrop}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ")
-                  fileInputRef.current?.click();
-              }}
+              onClick={()=>inputRef.current?.click()}
+              onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={e=>{e.preventDefault();setDragOver(false);pick(e.dataTransfer.files?.[0]);}}
+              onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")inputRef.current?.click();}}
+              role="button" tabIndex={0}
+              className={`mt-5 flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-200 ${
+                dragOver  ? "border-indigo-400 bg-indigo-50/60 scale-[1.01]" :
+                file      ? "border-emerald-300 bg-emerald-50/40" :
+                             "border-slate-200 bg-slate-50/60 hover:border-indigo-300 hover:bg-indigo-50/30"
+              }`}
             >
-              {selectedFile ? (
-                <>
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-                    <FileText size={23} />
-                  </span>
-                  <p className="mt-4 max-w-full truncate text-sm font-semibold text-slate-800">
-                    {selectedFile.name}
-                  </p>
-                  <p className="mt-1 text-xs text-emerald-600">
-                    Ready to upload · {formatFileSize(selectedFile.size)}
-                  </p>
-                </>
+              {file ? (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-600">
+                    <FileText size={26}/>
+                  </div>
+                  <p className="max-w-xs truncate text-sm font-semibold text-slate-800">{file.name}</p>
+                  <p className="text-xs text-emerald-600">Ready · {(file.size/1024/1024).toFixed(2)} MB</p>
+                </div>
               ) : (
-                <>
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-indigo-50 text-indigo-500">
-                    <UploadCloud size={25} strokeWidth={1.8} />
-                  </span>
-                  <p className="mt-4 text-sm font-semibold text-slate-800">
-                    Drop your file here, or{" "}
-                    <span className="text-indigo-600">browse</span>
-                  </p>
-                  <p className="mt-1.5 text-xs text-slate-400">
-                    Supported formats: PDF, JPG, PNG · Max file size: 10 MB
-                  </p>
-                </>
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className={`grid h-14 w-14 place-items-center rounded-2xl transition-colors ${dragOver?"bg-indigo-100 text-indigo-600":"bg-indigo-50 text-indigo-400"}`}>
+                    <UploadCloud size={28} strokeWidth={1.6}/>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Drop your file here, or <span className="text-indigo-600">browse</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">Supported: PDF, JPG, PNG · Max 10 MB</p>
+                  </div>
+                </div>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              className="hidden"
-              type="file"
-              accept="application/pdf,image/jpeg,image/png"
-              onChange={handleFileChange}
-            />
-            {uploadError && (
-              <p className="mt-3 text-center text-xs font-medium text-rose-600">
-                {uploadError}
-              </p>
-            )}
-            <div className="mt-4 flex justify-center">
-              <button
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-indigo-200 hover:text-indigo-600"
-                onClick={() => fileInputRef.current?.click()}
-                type="button"
-              >
-                {selectedFile ? "Replace File" : "Browse Files"}
+
+            <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png"
+              className="hidden" onChange={e=>pick(e.target.files?.[0])}/>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button type="button" onClick={()=>inputRef.current?.click()}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600">
+                {file?"Replace File":"Browse Files"}
               </button>
-              {selectedFile && (
-                <button
-                  className="ml-2 grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-400 hover:text-rose-500"
-                  onClick={() => setSelectedFile(null)}
-                  title="Remove selected file"
-                  type="button"
-                >
-                  <X size={15} />
+              {file && (
+                <button type="button" onClick={()=>setFile(null)}
+                  className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:border-rose-200 hover:text-rose-500 transition">
+                  <X size={14}/>
                 </button>
               )}
             </div>
-          </section>
 
-          <section className="mt-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/40 sm:p-7">
-            <h2 className="text-sm font-semibold text-slate-900">
-              How Fraudex works
-            </h2>
-            <div className="relative mt-6 flex min-w-[650px] items-start gap-3 overflow-x-auto pb-1">
-              <div className="absolute left-[8%] right-[8%] top-3 h-px bg-slate-200" />
-              {workflowSteps.map((step) => (
-                <div
-                  className="relative z-10 min-w-0 flex-1 text-center"
-                  key={step.number}
-                >
-                  <span
-                    className="relative z-10 mx-auto flex shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold leading-none text-white shadow-sm shadow-indigo-200"
-                    style={{ width: "28px", height: "28px" }}
-                  >
-                    {step.number}
-                  </span>
-                  <p className="mx-auto mt-3 max-w-[130px] text-xs font-semibold leading-4 text-slate-800">
-                    {step.title}
-                  </p>
-                  <p className="mx-auto mt-1 max-w-[135px] text-[11px] leading-4 text-slate-400">
-                    {step.description}
-                  </p>
+            {error && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-medium text-rose-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500"/>
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* How it works */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-2">
+              <Zap size={15} className="text-indigo-500"/>
+              <h2 className="text-sm font-semibold text-slate-900">How Fraudex works</h2>
+            </div>
+            <div className="relative flex items-start gap-0 overflow-x-auto pb-2">
+              <div className="absolute left-[28px] right-[28px] top-3.5 h-px bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-200"/>
+              {STEPS.map((s,i)=>(
+                <div key={s.n} className="relative z-10 flex min-w-[110px] flex-1 flex-col items-center text-center">
+                  <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg shadow-indigo-500/25">
+                    {s.n}
+                  </div>
+                  <p className="mt-3 px-1 text-xs font-semibold text-slate-800">{s.title}</p>
+                  <p className="mt-1 px-1 text-[11px] leading-4 text-slate-400">{s.desc}</p>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
 
-          <div className="mt-5 flex justify-end">
-            <button
-              className="flex items-center gap-2 rounded-xl bg-indigo-300 px-5 py-2.5 text-xs font-semibold text-white shadow-sm enabled:bg-[#5967f2] enabled:hover:bg-[#4856df] disabled:cursor-not-allowed"
-              onClick={handleAnalyze}
-              disabled={!selectedFile || isUploading}
-              type="button"
-            >
-              <CheckCircle2 size={15} />
-              {isUploading ? "Uploading..." : "Analyze Invoice"}
+          {/* Analyze button */}
+          <div className="flex justify-end">
+            <button onClick={analyze} disabled={!file||uploading} type="button"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition enabled:hover:shadow-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-50">
+              <CheckCircle2 size={16}/>
+              {uploading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Analyzing…
+                </span>
+              ) : "Analyze Invoice"}
             </button>
           </div>
-        </section>
+        </div>
       </div>
     </main>
   );
 }
-
-export default UploadInvoice;
