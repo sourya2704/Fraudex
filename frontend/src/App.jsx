@@ -9,20 +9,28 @@ import FraudDetection from './pages/dashboard/fraudDetection/FraudDetection'
 import Analytics from './pages/dashboard/analytics/Analytics'
 import Settings from './pages/dashboard/settings/Settings'
 import AuditLog from './pages/dashboard/audit/AuditLog'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      {/* Public routes */}
+      <Route path="/login"  element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/dashboard/upload-invoice" element={<UploadInvoice />} />
-      <Route path="/dashboard/invoices" element={<Invoices />} />
-      <Route path="/dashboard/invoices/:invoiceId" element={<InvoiceDetail />} />
-      <Route path="/dashboard/fraud-detection" element={<FraudDetection />} />
-      <Route path="/dashboard/analytics" element={<Analytics />} />
-      <Route path="/dashboard/audit" element={<AuditLog />} />
-      <Route path="/dashboard/settings" element={<Settings />} />
+
+      {/* Protected — any authenticated user */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard"                        element={<Dashboard />} />
+        <Route path="/dashboard/upload-invoice"         element={<UploadInvoice />} />
+        <Route path="/dashboard/invoices"               element={<Invoices />} />
+        <Route path="/dashboard/invoices/:invoiceId"    element={<InvoiceDetail />} />
+        <Route path="/dashboard/fraud-detection"        element={<FraudDetection />} />
+        <Route path="/dashboard/analytics"              element={<Analytics />} />
+        <Route path="/dashboard/settings"               element={<Settings />} />
+        <Route path="/dashboard/audit"                  element={<AuditLog />} />
+      </Route>
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
