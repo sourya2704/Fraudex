@@ -2,6 +2,7 @@ import {
   Activity,
   AlertTriangle,
   Bell,
+  BrainCircuit,
   CheckCircle2,
   ChevronLeft,
   Clock,
@@ -10,6 +11,7 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   User,
   XCircle,
 } from "lucide-react";
@@ -356,25 +358,29 @@ export default function InvoiceDetail() {
   const [validation, setValidation] = useState(null);
   const [audit, setAudit]         = useState([]);
   const [review, setReview]       = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
   const [loading, setLoading]     = useState(true);
   const [runningFraud, setRunningFraud] = useState(false);
   const [runningExtract, setRunningExtract] = useState(false);
+  const [runningAI, setRunningAI] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState(null);
 
   async function loadAll() {
     try {
-      const [invRes, fraudRes, auditRes, revRes] = await Promise.allSettled([
+      const [invRes, fraudRes, auditRes, revRes, aiRes] = await Promise.allSettled([
         apiClient.get(`/invoices/${invoiceId}`),
         apiClient.get(`/invoices/${invoiceId}/fraud-detection`),
         apiClient.get(`/audit/${invoiceId}`),
         apiClient.get(`/invoices/${invoiceId}/review`),
+        apiClient.get(`/invoices/${invoiceId}/ai-analysis`),
       ]);
       if (invRes.status   === "fulfilled") setInvoice(invRes.value.data);
       else setError("Invoice not found");
       if (fraudRes.status === "fulfilled") setFraud(fraudRes.value.data);
       if (auditRes.status === "fulfilled") setAudit(auditRes.value.data);
       if (revRes.status   === "fulfilled") setReview(revRes.value.data);
+      if (aiRes.status    === "fulfilled") setAiAnalysis(aiRes.value.data);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -401,6 +407,18 @@ export default function InvoiceDetail() {
       const auditRes = await apiClient.get(`/audit/${invoiceId}`);
       setAudit(auditRes.data);
     } finally { setRunningFraud(false); }
+  }
+
+  async function runAIAnalysis() {
+    setRunningAI(true);
+    try {
+      const res = await apiClient.post(`/invoices/${invoiceId}/ai-analyze`);
+      setAiAnalysis(res.data);
+      const auditRes = await apiClient.get(`/audit/${invoiceId}`);
+      setAudit(auditRes.data);
+    } catch (e) {
+      console.error("AI analysis failed:", e);
+    } finally { setRunningAI(false); }
   }
 
   function refresh() { setRefreshing(true); loadAll(); }
@@ -598,6 +616,124 @@ export default function InvoiceDetail() {
                 )}
             </section>
           </div>
+
+          {/* ── AI Analysis panel ───────────────────────────────────────── */}
+          <section className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-slate-50 p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <BrainCircuit size={15} className="text-indigo-500" />
+                AI Fraud Analysis
+                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600">
+                  LangGraph · 7 Agents
+                </span>
+              </h2>
+              <button
+                onClick={runAIAnalysis}
+                disabled={runningAI}
+                type="button"
+                className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-60"
+              >
+                <Sparkles size={13} />
+                {runningAI ? "Analyzing… (may take 30s)" : aiAnalysis ? "Re-run AI Analysis" : "Run AI Analysis"}
+              </button>
+            </div>
+
+            {runningAI && (
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-indigo-100 bg-white px-4 py-3">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
+                <div>
+                  <p className="text-xs font-semibold text-indigo-700">Running 7-agent analysis pipeline…</p>
+                  <p className="text-[11px] text-slate-400">Invoice Analyzer → Duplicate Check → Vendor Analysis → Historical → RAG Evidence → Risk Assessment → Explanation</p>
+                </div>
+              </div>
+            )}
+
+            {!runningAI && !aiAnalysis && (
+              <div className="mt-4 flex flex-col items-center py-6 text-center">
+                <BrainCircuit size={28} className="text-indigo-200" />
+                <p className="mt-2 text-sm font-semibold text-slate-500">AI analysis not run yet</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Click "Run AI Analysis" to get LangGraph multi-agent risk assessment with RAG evidence
+                </p>
+              </div>
+            )}
+
+            {!runningAI && aiAnalysis && (
+              <div className="mt-4 space-y-4">
+                {/* Score comparison */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Deterministic Score", val: aiAnalysis.risk_score_deterministic, color: "slate" },
+                    { label: "AI Score",             val: aiAnalysis.risk_score_ai,            color: "indigo" },
+                    { label: "Final Score",          val: aiAnalysis.risk_score_final,          color: aiAnalysis.risk_level === "CRITICAL" ? "rose" : aiAnalysis.risk_level === "HIGH" ? "orange" : aiAnalysis.risk_level === "MEDIUM" ? "amber" : "green" },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} className="rounded-lg border border-slate-100 bg-white p-3 text-center">
+                      <p className={`text-xl font-bold ${color === "rose" ? "text-rose-600" : color === "orange" ? "text-orange-500" : color === "amber" ? "text-amber-500" : color === "indigo" ? "text-indigo-600" : "text-green-600"}`}>
+                        {val != null ? val.toFixed(1) : "—"}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-slate-400">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Risk level */}
+                {aiAnalysis.risk_level && (
+                  <div className={`flex items-center gap-2 rounded-lg border px-4 py-2 ${
+                    aiAnalysis.risk_level === "CRITICAL" ? "border-rose-200 bg-rose-50" :
+                    aiAnalysis.risk_level === "HIGH" ? "border-orange-200 bg-orange-50" :
+                    aiAnalysis.risk_level === "MEDIUM" ? "border-amber-200 bg-amber-50" :
+                    "border-green-200 bg-green-50"
+                  }`}>
+                    <ShieldAlert size={14} className={
+                      aiAnalysis.risk_level === "CRITICAL" ? "text-rose-600" :
+                      aiAnalysis.risk_level === "HIGH" ? "text-orange-500" :
+                      aiAnalysis.risk_level === "MEDIUM" ? "text-amber-500" : "text-green-600"
+                    } />
+                    <span className="text-xs font-bold text-slate-700">
+                      Final Risk Level: {aiAnalysis.risk_level}
+                    </span>
+                    <span className="ml-auto text-[11px] text-slate-400">
+                      60% deterministic + 40% AI weighted
+                    </span>
+                  </div>
+                )}
+
+                {/* AI Explanation */}
+                {aiAnalysis.ai_explanation && (
+                  <div className="rounded-lg border border-indigo-100 bg-white p-4">
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-400">
+                      <Sparkles size={11} /> AI-Generated Analysis
+                    </p>
+                    <p className="text-xs leading-5 text-slate-600">{aiAnalysis.ai_explanation}</p>
+                    <p className="mt-2 text-[10px] text-slate-400 italic">
+                      This analysis supports human review. The final decision rests with the reviewer.
+                    </p>
+                  </div>
+                )}
+
+                {/* Evidence used */}
+                {aiAnalysis.evidence_used && aiAnalysis.evidence_used.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      RAG Evidence Used ({aiAnalysis.evidence_used.length} passages)
+                    </p>
+                    <div className="space-y-1.5">
+                      {aiAnalysis.evidence_used.map((e, i) => (
+                        <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
+                          <p className="text-[10px] font-semibold text-indigo-500">{e.document_name}</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500 line-clamp-2">{e.chunk_text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-right text-[11px] text-slate-400">
+                  Analyzed: {new Date(aiAnalysis.analyzed_at).toLocaleString("en-IN")}
+                </p>
+              </div>
+            )}
+          </section>
 
           {/* ── Bottom row: Human Review + Audit timeline ────────────────── */}
           <div className="grid gap-5 lg:grid-cols-2">

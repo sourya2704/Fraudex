@@ -38,3 +38,15 @@ python-dateutil==2.9.0
 # OCR Dependencies (requires: sudo apt install -y tesseract-ocr)
 pytesseract==0.3.13
 Pillow==11.3.0
+
+# AI / RAG Dependencies
+langchain==0.3.25
+langchain-ollama==0.2.3
+langchain-community==0.3.24
+langchain-core==0.3.86
+langchain-text-splitters==0.3.11
+langgraph==0.2.70
+langgraph-checkpoint==2.1.2
+langgraph-sdk==0.1.74
+tiktoken==0.8.0
+ollama==0.6.3

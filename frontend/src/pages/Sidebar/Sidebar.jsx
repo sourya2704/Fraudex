@@ -8,11 +8,11 @@ import {
   Moon,
   Settings,
   ShieldAlert,
-  ShieldCheck,
   Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import logoSvg from "../../assets/logo.svg";
 
 const navigationItems = [
   { label: "Dashboard",       icon: LayoutDashboard, href: "/dashboard" },
@@ -37,20 +37,24 @@ function Sidebar({ expanded = true }) {
     <aside
       className={`sticky top-0 flex h-screen max-h-screen shrink-0 flex-col overflow-hidden border-r border-[#2d3559] bg-[#11162a] px-3 py-6 text-slate-300 shadow-[12px_0_40px_rgba(0,0,0,0.14)] transition-[width] duration-200 ${expanded ? "w-56" : "w-20 hover:z-10 hover:w-64 hover:px-4"}`}
     >
-      <div
-        className={`flex items-center gap-3 px-2 ${expanded ? "justify-start" : "justify-center transition-[justify-content] group-hover:justify-start"}`}
+      <Link
+        to="/dashboard"
+        className={`flex items-center gap-3 px-2 ${expanded ? "justify-start" : "justify-center"}`}
       >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#c7f36b] text-[#151a31] shadow-[0_0_24px_rgba(199,243,107,0.22)]">
-          <ShieldCheck size={20} strokeWidth={2.1} />
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#c7f36b]/10 ring-1 ring-[#c7f36b]/40 shadow-[0_0_18px_rgba(199,243,107,0.18)]">
+          <img src={logoSvg} alt="FrauDex logo" className="h-6 w-6" />
         </span>
         <div
-          className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-out ${expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0 group-hover:max-w-40 group-hover:opacity-100"}`}
+          className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-out ${expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"}`}
         >
-          <strong className="block text-lg font-bold tracking-tight text-white">
-            Fraudex
+          <strong className="block text-lg font-bold tracking-tight text-white leading-none">
+            Frau<span className="text-[#c7f36b]">Dex</span>
           </strong>
+          <span className="text-[10px] font-medium tracking-widest text-slate-500 uppercase">
+            Fraud Detection
+          </span>
         </div>
-      </div>
+      </Link>
 
       <nav className="mt-12" aria-label="Dashboard navigation">
         <div className="space-y-2">
