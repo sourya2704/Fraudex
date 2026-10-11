@@ -27,6 +27,7 @@ from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
 from app.schemas.fraud import FraudDetectionResponse, FraudDetectionSummary
 from app.fraud.detector import FraudDetector
 from app.core.audit import log_action
+from app.core.notifications import notify, notify_all_admins
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -93,6 +94,14 @@ async def upload_invoice(
         user_id=current_user.id,
         invoice_id=invoice.id,
         detail={"filename": file.filename, "size_bytes": len(contents)},
+    )
+    notify_all_admins(
+        db,
+        type="INVOICE_UPLOADED",
+        title="New invoice uploaded",
+        message=f"{current_user.name} uploaded '{file.filename}' (Invoice #{invoice.id})",
+        invoice_id=invoice.id,
+        exclude_user_id=current_user.id,
     )
     db.commit()
 
@@ -214,6 +223,14 @@ def extract_invoice_text(
             user_id=current_user.id,
             invoice_id=invoice_id,
             detail={"success": False, "error": str(e)},
+        )
+        notify(
+            db,
+            user_id=current_user.id,
+            type="PROCESSING_FAILED",
+            title="Invoice processing failed",
+            message=f"Failed to extract text from Invoice #{invoice_id}: {str(e)}",
+            invoice_id=invoice_id,
         )
         db.commit()
         db.refresh(invoice)
@@ -359,6 +376,18 @@ def detect_fraud(
             "total_flags": result_dict.get("total_flags", len(result_dict["fraud_flags"])),
         },
     )
+
+    risk_level = result_dict["risk_level"]
+    if risk_level in ("HIGH", "CRITICAL"):
+        notif_type = "FRAUD_CRITICAL" if risk_level == "CRITICAL" else "FRAUD_HIGH"
+        notify_all_admins(
+            db,
+            type=notif_type,
+            title=f"{'🚨 CRITICAL' if risk_level == 'CRITICAL' else '⚠️ HIGH'} risk invoice flagged",
+            message=f"Invoice #{invoice_id} scored {result_dict['risk_score']:.1f}/100 — {result_dict.get('total_flags', 0)} fraud signal(s) detected. Immediate review recommended.",
+            invoice_id=invoice_id,
+        )
+
     db.commit()
 
     return db_result

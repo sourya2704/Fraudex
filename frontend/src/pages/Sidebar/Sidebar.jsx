@@ -13,6 +13,8 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoSvg from "../../assets/logo.svg";
+import { useAuth } from "../../context/AuthContext";
+import { useAvatar } from "../../context/AvatarContext";
 
 const NAV = [
   { label: "Dashboard",       Icon: LayoutDashboard, href: "/dashboard" },

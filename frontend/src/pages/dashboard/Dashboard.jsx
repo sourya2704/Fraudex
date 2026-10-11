@@ -1,5 +1,5 @@
 import {
-  Activity, Bell, ChevronRight, CircleAlert,
+  Activity, ChevronRight, CircleAlert,
   Clock3, FileUp, RefreshCw, Search,
   ShieldAlert, ShieldCheck, TrendingUp,
 } from "lucide-react";
@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import apiClient from "../../api/client";
 import Sidebar from "../Sidebar/Sidebar";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../../components/NotificationBell";
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const STATUS_STYLE = {
@@ -157,10 +158,7 @@ export default function Dashboard() {
             <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700">
               <Search size={15}/>
             </button>
-            <button type="button" className="relative grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700">
-              <Bell size={15}/>
-              {critHigh>0 && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/>}
-            </button>
+            <NotificationBell />
             <Link to="/dashboard/upload-invoice"
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/40">
               <FileUp size={15}/> Upload Invoice

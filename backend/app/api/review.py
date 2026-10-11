@@ -5,6 +5,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.core.audit import log_action
+from app.core.notifications import notify
 from app.core.dependencies import get_current_user, get_db, require_role
 from app.models.audit_log import AuditLog
 from app.models.invoice import Invoice, InvoiceStatus
@@ -90,6 +91,16 @@ def review_invoice(
             invoice_id=invoice_id,
             detail={"old_status": old_status, "new_status": new_status},
         )
+
+    decision_emoji = {"APPROVE": "✅", "REJECT": "❌", "REQUEST_FURTHER_REVIEW": "🔍"}
+    notify(
+        db,
+        user_id=invoice.uploaded_by,
+        type="REVIEW_DECISION",
+        title=f"{decision_emoji.get(body.decision, '')} Invoice #{invoice_id} {body.decision.replace('_', ' ').lower()}",
+        message=f"Reviewed by {current_user.name} ({current_user.role}): {body.reason[:120]}",
+        invoice_id=invoice_id,
+    )
 
     db.commit()
     db.refresh(review)

@@ -14,6 +14,7 @@ from app.models.invoice_review import InvoiceReview
 from app.models.audit_log import AuditLog
 from app.models.knowledge_chunk import KnowledgeChunk
 from app.models.ai_fraud_analysis import AIFraudAnalysis
+from app.models.notification import Notification
 
 from app.api.users import router as users_router
 from app.api.auth import router as auth_router
@@ -22,6 +23,7 @@ from app.api.invoices import router as invoices_router
 from app.api.fraud_analytics import router as fraud_analytics_router
 from app.api.review import router as review_router
 from app.api.ai_analysis import router as ai_router
+from app.api.notifications import router as notifications_router
 
 app = FastAPI(
     title="FrauDex API",
@@ -51,6 +53,7 @@ app.include_router(invoices_router)
 app.include_router(fraud_analytics_router)
 app.include_router(review_router)
 app.include_router(ai_router)
+app.include_router(notifications_router)
 
 
 @app.get("/", tags=["Health"])

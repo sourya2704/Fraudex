@@ -6,3 +6,4 @@ from app.models.fraud_detection_result import FraudDetectionResult
 from app.models.vendor_stats import VendorStats
 from app.models.invoice_review import InvoiceReview
 from app.models.audit_log import AuditLog
+from app.models.notification import Notification
