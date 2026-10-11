@@ -149,7 +149,7 @@ function StatsBar({ logs }) {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {cards.map(({label,val,color})=>(
         <div key={label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${DOT[color]} opacity-60`}/>
+          <div className={``}/>
           <p className={`text-2xl font-bold ${numColor[color]}`}>{val}</p>
           <p className="mt-1 text-xs text-slate-400">{label}</p>
         </div>
@@ -175,7 +175,7 @@ function FilterBar({ sel, onSel, search, onSearch }) {
           <button key={a} type="button" onClick={()=>onSel(a)}
             className={`rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-colors ${
               sel===a
-                ?"border-indigo-500 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-sm"
+                ?"border-indigo-500 bg-indigo-600 text-white"
                 :"border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
             }`}>
             {a==="ALL"?"All events":META[a]?.label||a}
@@ -216,7 +216,7 @@ export default function AuditLog() {
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <div className="flex items-center gap-2">
             <div className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-50 text-indigo-600"><Activity size={14}/></div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">Audit Log</h1>

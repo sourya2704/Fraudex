@@ -13,7 +13,7 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 
-        <header className="sticky top-0 z-10 flex h-16 items-center border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center border-b border-slate-200 bg-white px-6 sm:px-8">
           <h1 className="text-lg font-bold tracking-tight text-slate-900">Invoice Processing</h1>
         </header>
 
@@ -21,7 +21,7 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm text-center">
 
             {/* icon */}
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/25 text-white">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-xl bg-indigo-600 text-white">
               <ShieldCheck size={30} strokeWidth={1.8}/>
             </div>
 
@@ -93,7 +93,7 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
               {invoice && (
                 <Link to={`/dashboard/invoices/${invoice.id}`}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/40">
+                  className="flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
                   View Full Analysis <ArrowRight size={15}/>
                 </Link>
               )}

@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+/* ── Tailwind v4 dark mode — triggered by html.dark class ─────────────────── */
+@variant dark (&:where(.dark, .dark *));
+
 /* ── CSS Custom Properties ───────────────────────────────────────────────── */
 :root {
   --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -15,6 +18,7 @@
   --bg-base:      #f8f9fc;
   --bg-card:      #ffffff;
   --bg-subtle:    #f1f3f9;
+  --bg-hover:     #f4f6fb;
 
   /* Borders */
   --border:       #e4e7f0;
@@ -154,13 +158,14 @@ html.dark {
   --bg-base:      #0d1117;
   --bg-card:      #161b27;
   --bg-subtle:    #1e2535;
+  --bg-hover:     #1a2030;
   --border:       rgba(255,255,255,0.07);
   --text-primary:   #eef0f8;
   --text-secondary: #a0a8bf;
   --text-muted:     #5a6480;
 }
 
-html.dark body { background: var(--bg-base); }
+html.dark body { background: var(--bg-base); color: var(--text-primary); }
 html.dark .card { background: var(--bg-card); border-color: var(--border); }
 html.dark .glass-card {
   background: rgba(22,27,39,0.85);
@@ -173,3 +178,107 @@ html.dark .input-base {
 }
 html.dark ::-webkit-scrollbar-thumb { background: #2a3047; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4260; }
+
+/* ── Dark mode — page backgrounds ────────────────────────────────────────── */
+html.dark main,
+html.dark .min-h-screen {
+  background: var(--bg-base) !important;
+}
+
+/* ── Dark mode — white surfaces → dark cards ─────────────────────────────── */
+html.dark .bg-white,
+html.dark [class*="bg-white"] {
+  background-color: var(--bg-card) !important;
+}
+
+/* ── Dark mode — light grey backgrounds → dark subtle ───────────────────── */
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark [class*="bg-\[#f"] {
+  background-color: var(--bg-subtle) !important;
+}
+
+/* ── Dark mode — borders ─────────────────────────────────────────────────── */
+html.dark .border-slate-200,
+html.dark .border-slate-100,
+html.dark [class*="border-slate-2"],
+html.dark [class*="border-slate-1"] {
+  border-color: var(--border) !important;
+}
+
+/* ── Dark mode — text ────────────────────────────────────────────────────── */
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .text-slate-400,
+html.dark .text-slate-300 {
+  color: var(--text-muted) !important;
+}
+
+/* ── Dark mode — headers & sticky bars ───────────────────────────────────── */
+html.dark header.border-b,
+html.dark .sticky.border-b {
+  background: rgba(22,27,39,0.90) !important;
+  border-color: var(--border) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* ── Dark mode — inputs ──────────────────────────────────────────────────── */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* ── Dark mode — tables ──────────────────────────────────────────────────── */
+html.dark thead,
+html.dark .bg-slate-50\/70,
+html.dark th {
+  background-color: var(--bg-subtle) !important;
+  color: var(--text-muted) !important;
+}
+
+html.dark tbody tr:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+html.dark .divide-slate-100 > * + * {
+  border-color: var(--border) !important;
+}
+
+/* ── Dark mode — hover states ────────────────────────────────────────────── */
+html.dark .hover\:bg-slate-50\/60:hover,
+html.dark .hover\:bg-slate-50:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* ── Dark mode — notification/dropdown panels ────────────────────────────── */
+html.dark .shadow-xl {
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Dark mode — badge/chip backgrounds ─────────────────────────────────── */
+html.dark .bg-slate-100 {
+  background-color: var(--bg-subtle) !important;
+}
+
+html.dark .rounded-full.bg-slate-100,
+html.dark .rounded-lg.bg-slate-100,
+html.dark .rounded-xl.bg-slate-100 {
+  background-color: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+}

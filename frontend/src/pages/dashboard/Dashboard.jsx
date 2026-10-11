@@ -131,10 +131,10 @@ export default function Dashboard() {
   const failed   = invoices.filter(i=>i.status==="PROCESSING_FAILED").length;
 
   const METRICS = [
-    { label:"Total Invoices",  val:total,    Icon:FileUp,     from:"from-blue-500",   to:"to-indigo-600",  textColor:"text-blue-600"    },
-    { label:"Awaiting Review", val:pending,  Icon:Clock3,     from:"from-amber-400",  to:"to-orange-500",  textColor:"text-amber-600"   },
-    { label:"High / Critical", val:critHigh, Icon:CircleAlert,from:"from-rose-500",   to:"to-pink-600",    textColor:"text-rose-600"    },
-    { label:"Decided",         val:decided,  Icon:ShieldCheck,from:"from-emerald-500",to:"to-teal-500",    textColor:"text-emerald-600" },
+    { label:"Total Invoices",  val:total,    Icon:FileUp,      iconBg:"bg-blue-50",    iconColor:"text-blue-600",   textColor:"text-blue-700"    },
+    { label:"Awaiting Review", val:pending,  Icon:Clock3,      iconBg:"bg-amber-50",   iconColor:"text-amber-600",  textColor:"text-amber-700"   },
+    { label:"High / Critical", val:critHigh, Icon:CircleAlert, iconBg:"bg-rose-50",    iconColor:"text-rose-600",   textColor:"text-rose-700"    },
+    { label:"Decided",         val:decided,  Icon:ShieldCheck, iconBg:"bg-emerald-50", iconColor:"text-emerald-600",textColor:"text-emerald-700" },
   ];
 
   return (
@@ -143,10 +143,10 @@ export default function Dashboard() {
       <div className="min-w-0 flex-1">
 
         {/* ── Top bar ───────────────────────────────────────────────────── */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">
-              Good morning{user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋
+              {user?.name ? `Hello, ${user.name.split(" ")[0]}` : "Dashboard"}
             </h1>
             <p className="text-xs text-slate-400">Live overview of your invoice pipeline</p>
           </div>
@@ -160,7 +160,7 @@ export default function Dashboard() {
             </button>
             <NotificationBell />
             <Link to="/dashboard/upload-invoice"
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/40">
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
               <FileUp size={15}/> Upload Invoice
             </Link>
           </div>
@@ -170,14 +170,12 @@ export default function Dashboard() {
 
           {/* ── Metric cards ──────────────────────────────────────────── */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {METRICS.map(({ label, val, Icon, from, to, textColor }) => (
-              <article key={label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-                {/* gradient bar top */}
-                <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${from} ${to}`}/>
+            {METRICS.map(({ label, val, Icon, iconBg, iconColor, textColor }) => (
+              <article key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between">
                   <p className="text-sm font-medium text-slate-500">{label}</p>
-                  <div className={`grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br ${from} ${to} shadow-sm`}>
-                    <Icon size={17} strokeWidth={2} className="text-white"/>
+                  <div className={`grid h-9 w-9 place-items-center rounded-lg ${iconBg}`}>
+                    <Icon size={17} strokeWidth={2} className={iconColor}/>
                   </div>
                 </div>
                 <p className={`mt-4 text-3xl font-bold tracking-tight ${textColor}`}>
@@ -187,7 +185,7 @@ export default function Dashboard() {
                   <p className="mt-1 text-xs text-slate-400">avg score {stats.average_risk_score}</p>
                 )}
                 {label==="Total Invoices" && failed>0 && (
-                  <p className="mt-1 text-xs text-rose-400">{failed} failed</p>
+                  <p className="mt-1 text-xs text-rose-500">{failed} failed</p>
                 )}
               </article>
             ))}

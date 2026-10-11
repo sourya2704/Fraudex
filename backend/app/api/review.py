@@ -92,12 +92,12 @@ def review_invoice(
             detail={"old_status": old_status, "new_status": new_status},
         )
 
-    decision_emoji = {"APPROVE": "✅", "REJECT": "❌", "REQUEST_FURTHER_REVIEW": "🔍"}
+    decision_label = {"APPROVE": "approved", "REJECT": "rejected", "REQUEST_FURTHER_REVIEW": "sent for further review"}
     notify(
         db,
         user_id=invoice.uploaded_by,
         type="REVIEW_DECISION",
-        title=f"{decision_emoji.get(body.decision, '')} Invoice #{invoice_id} {body.decision.replace('_', ' ').lower()}",
+        title=f"Invoice #{invoice_id} {decision_label.get(body.decision, body.decision.lower())}",
         message=f"Reviewed by {current_user.name} ({current_user.role}): {body.reason[:120]}",
         invoice_id=invoice_id,
     )

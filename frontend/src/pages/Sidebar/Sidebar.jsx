@@ -27,9 +27,9 @@ const NAV = [
 ];
 
 const ROLE_COLOR = {
-  ADMIN:           "from-rose-500 to-pink-600",
-  FINANCE_MANAGER: "from-violet-500 to-purple-600",
-  EMPLOYEE:        "from-indigo-500 to-violet-600",
+  ADMIN:           "bg-rose-600",
+  FINANCE_MANAGER: "bg-violet-600",
+  EMPLOYEE:        "bg-indigo-600",
 };
 const ROLE_LABEL = {
   ADMIN: "Admin", FINANCE_MANAGER: "Finance Mgr", EMPLOYEE: "Employee",
@@ -102,7 +102,7 @@ export default function Sidebar({ expanded = true }) {
                 transition-all duration-150
                 ${expanded ? "gap-3" : "justify-center gap-0"}
                 ${active
-                  ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                  ? "bg-indigo-600 text-white"
                   : "text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"}
               `}
             >
@@ -134,7 +134,7 @@ export default function Sidebar({ expanded = true }) {
                 {avatar ? (
                   <img src={avatar} alt="avatar" className="h-8 w-8 shrink-0 rounded-lg object-cover shadow" />
                 ) : (
-                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${gradient} text-xs font-bold text-white shadow`}>
+                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${gradient} text-xs font-bold text-white shadow`}>
                     {initials}
                   </div>
                 )}
@@ -147,7 +147,7 @@ export default function Sidebar({ expanded = true }) {
               avatar ? (
                 <img src={avatar} alt="avatar" className="h-8 w-8 rounded-lg object-cover shadow" />
               ) : (
-                <div className={`grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br ${gradient} text-xs font-bold text-white shadow`}>
+                <div className={`grid h-8 w-8 place-items-center rounded-lg ${gradient} text-xs font-bold text-white shadow`}>
                   {initials}
                 </div>
               )

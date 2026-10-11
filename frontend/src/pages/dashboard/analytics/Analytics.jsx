@@ -141,7 +141,7 @@ function Signals({ signals }) {
           <span className="w-44 truncate text-xs text-slate-500" title={s.code}>{s.code.replace(/_/g," ")}</span>
           <div className="flex-1">
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all" style={{width:`${(s.count/max)*100}%`}}/>
+              <div className="h-full rounded-full bg-indigo-500 transition-all" style={{width:`${(s.count/max)*100}%`}}/>
             </div>
           </div>
           <span className="w-6 text-right text-xs font-bold text-slate-600">{s.count}</span>
@@ -237,7 +237,7 @@ export default function Analytics() {
       <div className="min-w-0 flex-1">
 
         {/* header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Workspace intelligence</p>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">Fraud Analytics</h1>

@@ -94,14 +94,14 @@ export default function Signup() {
       {/* ── LEFT HERO ──────────────────────────────────────────────────── */}
       <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-32 -top-32 h-[480px] w-[480px] rounded-full bg-violet-600/20 blur-[120px]" />
-          <div className="absolute -bottom-32 -right-32 h-[400px] w-[400px] rounded-full bg-indigo-600/20 blur-[120px]" />
+          
+          
           <div className="absolute inset-0 opacity-[0.04]"
             style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
         </div>
 
         <div className="relative flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">
             <ShieldCheck size={20} strokeWidth={2.2} />
           </div>
           <span className="text-lg font-bold tracking-tight">Fraudex</span>
@@ -109,12 +109,12 @@ export default function Signup() {
 
         <div className="relative">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-xs font-medium text-violet-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
             Join your team's workspace
           </div>
           <h1 className="text-5xl font-bold leading-[1.12] tracking-tight">
             Safer payment<br />
-            <span className="bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="text-violet-300">
               workflows start here
             </span>
           </h1>
@@ -133,7 +133,7 @@ export default function Signup() {
 
           <div className="mt-10 grid grid-cols-3 gap-3">
             {[["24/7","Monitoring"],["100%","Traceable"],["1","Workspace"]].map(([v,l]) => (
-              <div key={l} className="rounded-xl border border-white/8 bg-white/5 px-4 py-3 backdrop-blur-sm">
+              <div key={l} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
                 <p className="text-xl font-bold">{v}</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">{l}</p>
               </div>
@@ -149,7 +149,7 @@ export default function Signup() {
         <div className="w-full max-w-[400px]">
 
           <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-600">
               <ShieldCheck size={18} strokeWidth={2.2} className="text-white" />
             </div>
             <span className="text-lg font-bold text-slate-900">Fraudex</span>

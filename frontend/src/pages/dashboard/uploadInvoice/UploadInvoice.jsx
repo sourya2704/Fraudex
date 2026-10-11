@@ -55,7 +55,7 @@ export default function UploadInvoice() {
       <div className="min-w-0 flex-1">
 
         {/* header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Invoice workspace</p>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">Upload Invoice</h1>
@@ -140,10 +140,10 @@ export default function UploadInvoice() {
               <h2 className="text-sm font-semibold text-slate-900">How Fraudex works</h2>
             </div>
             <div className="relative flex items-start gap-0 overflow-x-auto pb-2">
-              <div className="absolute left-[28px] right-[28px] top-3.5 h-px bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-200"/>
+              <div className="absolute left-[28px] right-[28px] top-3.5 h-px bg-slate-200"/>
               {STEPS.map((s,i)=>(
                 <div key={s.n} className="relative z-10 flex min-w-[110px] flex-1 flex-col items-center text-center">
-                  <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg shadow-indigo-500/25">
+                  <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white">
                     {s.n}
                   </div>
                   <p className="mt-3 px-1 text-xs font-semibold text-slate-800">{s.title}</p>
@@ -156,7 +156,7 @@ export default function UploadInvoice() {
           {/* Analyze button */}
           <div className="flex justify-end">
             <button onClick={analyze} disabled={!file||uploading} type="button"
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition enabled:hover:shadow-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-50">
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition enabled:hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
               <CheckCircle2 size={16}/>
               {uploading ? (
                 <span className="flex items-center gap-2">

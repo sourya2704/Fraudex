@@ -6,9 +6,9 @@ import { useAvatar } from "../../../context/AvatarContext";
 import Sidebar from "../../Sidebar/Sidebar";
 
 const ROLE_META = {
-  ADMIN:           { label: "Admin",           cls: "bg-rose-50 text-rose-600 border-rose-200",       dot: "bg-rose-500",   grad: "from-rose-500 to-pink-600"     },
-  FINANCE_MANAGER: { label: "Finance Manager", cls: "bg-violet-50 text-violet-600 border-violet-200", dot: "bg-violet-500", grad: "from-violet-500 to-purple-600" },
-  EMPLOYEE:        { label: "Employee",        cls: "bg-indigo-50 text-indigo-600 border-indigo-200", dot: "bg-indigo-500", grad: "from-indigo-500 to-violet-600" },
+  ADMIN:           { label: "Admin",           cls: "bg-rose-50 text-rose-600 border-rose-200",       dot: "bg-rose-500",   solidBg: "bg-rose-500"   },
+  FINANCE_MANAGER: { label: "Finance Manager", cls: "bg-violet-50 text-violet-600 border-violet-200", dot: "bg-violet-500", solidBg: "bg-violet-500" },
+  EMPLOYEE:        { label: "Employee",        cls: "bg-indigo-50 text-indigo-600 border-indigo-200", dot: "bg-indigo-500", solidBg: "bg-indigo-500" },
 };
 
 function Toggle({ on, onToggle, label }) {
@@ -134,7 +134,7 @@ export default function Settings() {
       <div className="min-w-0 flex-1">
 
         {/* header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <h1 className="text-lg font-bold tracking-tight text-slate-900">Settings</h1>
           <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700">
             <Bell size={15} />
@@ -144,12 +144,8 @@ export default function Settings() {
         <div className="mx-auto max-w-2xl space-y-4 px-5 py-8 sm:px-8">
 
           {/* ── Profile card ─────────────────────────────────────── */}
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {/* cover */}
-            <div className={`h-20 bg-gradient-to-br ${rm.grad} relative`}>
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "16px 16px" }} />
-            </div>
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className={`h-16 border-b border-slate-100 ${rm.solidBg}`} />
 
             {/* avatar + info */}
             <div className="flex items-end gap-4 px-6 pb-5">
@@ -170,7 +166,7 @@ export default function Settings() {
                     className="h-16 w-16 rounded-2xl object-cover ring-4 ring-white shadow-lg"
                   />
                 ) : (
-                  <div className={`grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br ${rm.grad} text-xl font-bold text-white shadow-lg ring-4 ring-white`}>
+                  <div className={`grid h-16 w-16 place-items-center rounded-xl ${rm.solidBg} text-xl font-bold text-white ring-4 ring-white`}>
                     {initials}
                   </div>
                 )}
@@ -313,7 +309,7 @@ export default function Settings() {
 
               <div className="flex justify-end pt-1">
                 <button type="submit" disabled={pwdLoading}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/40 disabled:opacity-50">
+                  className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
                   {pwdLoading ? (
                     <><svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Updating…</>
                   ) : <><Save size={14} /> Update Password</>}

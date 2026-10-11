@@ -383,7 +383,7 @@ def detect_fraud(
         notify_all_admins(
             db,
             type=notif_type,
-            title=f"{'🚨 CRITICAL' if risk_level == 'CRITICAL' else '⚠️ HIGH'} risk invoice flagged",
+            title=f"{risk_level} risk invoice flagged",
             message=f"Invoice #{invoice_id} scored {result_dict['risk_score']:.1f}/100 — {result_dict.get('total_flags', 0)} fraud signal(s) detected. Immediate review recommended.",
             invoice_id=invoice_id,
         )

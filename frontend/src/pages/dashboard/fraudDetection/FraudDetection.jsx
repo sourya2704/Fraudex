@@ -72,10 +72,10 @@ export default function FraudDetection() {
 
   const critHigh = stats ? stats.critical_risk_count + stats.high_risk_count : 0;
   const CARDS = [
-    { label:"Critical / High Risk", val:loading?"…":critHigh,                         Icon:ShieldAlert,  from:"from-rose-500",   to:"to-pink-600",    textColor:"text-rose-600"    },
-    { label:"Medium Risk",          val:loading?"…":stats?.medium_risk_count??"—",     Icon:TriangleAlert,from:"from-amber-400",  to:"to-orange-500",  textColor:"text-amber-600"   },
-    { label:"Low Risk",             val:loading?"…":stats?.low_risk_count??"—",        Icon:FileWarning,  from:"from-emerald-500",to:"to-teal-500",    textColor:"text-emerald-600" },
-    { label:"Total Analyzed",       val:loading?"…":stats?.total_invoices_analyzed??"—",Icon:ShieldCheck, from:"from-indigo-500", to:"to-violet-600",  textColor:"text-indigo-600"  },
+    { label:"Critical / High Risk", val:loading?"…":critHigh,                          Icon:ShieldAlert,  iconBg:"bg-rose-50",    iconColor:"text-rose-600",    textColor:"text-rose-700"    },
+    { label:"Medium Risk",          val:loading?"…":stats?.medium_risk_count??"—",      Icon:TriangleAlert,iconBg:"bg-amber-50",   iconColor:"text-amber-600",   textColor:"text-amber-700"   },
+    { label:"Low Risk",             val:loading?"…":stats?.low_risk_count??"—",         Icon:FileWarning,  iconBg:"bg-emerald-50", iconColor:"text-emerald-600", textColor:"text-emerald-700" },
+    { label:"Total Analyzed",       val:loading?"…":stats?.total_invoices_analyzed??"—",Icon:ShieldCheck,  iconBg:"bg-indigo-50",  iconColor:"text-indigo-600",  textColor:"text-indigo-700"  },
   ];
 
   return (
@@ -84,7 +84,7 @@ export default function FraudDetection() {
       <div className="min-w-0 flex-1">
 
         {/* header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <h1 className="text-lg font-bold tracking-tight text-slate-900">Fraud Detection</h1>
           <div className="flex items-center gap-2">
             <button onClick={refresh} type="button"
@@ -103,13 +103,12 @@ export default function FraudDetection() {
 
           {/* ── Summary cards ─────────────────────────────────────────── */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {CARDS.map(({label,val,Icon,from,to,textColor})=>(
-              <article key={label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-                <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${from} ${to}`}/>
+            {CARDS.map(({label,val,Icon,iconBg,iconColor,textColor})=>(
+              <article key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between">
                   <p className="text-sm font-medium text-slate-500">{label}</p>
-                  <div className={`grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br ${from} ${to} shadow-sm`}>
-                    <Icon size={17} strokeWidth={2} className="text-white"/>
+                  <div className={`grid h-9 w-9 place-items-center rounded-lg ${iconBg}`}>
+                    <Icon size={17} strokeWidth={2} className={iconColor}/>
                   </div>
                 </div>
                 <p className={`mt-4 text-3xl font-bold tracking-tight ${textColor}`}>{val}</p>
@@ -167,7 +166,7 @@ export default function FraudDetection() {
                         <span className="w-44 truncate text-xs text-slate-500" title={ft.code}>{ft.code.replace(/_/g," ")}</span>
                         <div className="flex-1">
                           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all" style={{width:`${pct}%`}}/>
+                            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{width:`${pct}%`}}/>
                           </div>
                         </div>
                         <span className="w-6 text-right text-xs font-bold text-slate-600">{ft.count}</span>

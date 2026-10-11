@@ -82,12 +82,12 @@ export default function Invoices() {
       <div className="min-w-0 flex-1">
 
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <h1 className="text-lg font-bold tracking-tight text-slate-900">Invoices</h1>
           <div className="flex items-center gap-2">
             <button onClick={refresh} type="button" className={`grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-indigo-600 ${refreshing?"animate-spin":""}`}><RefreshCw size={15}/></button>
             <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Bell size={15}/></button>
-            <Link to="/dashboard/upload-invoice" className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25">
+            <Link to="/dashboard/upload-invoice" className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
               <Upload size={14}/> Upload
             </Link>
           </div>

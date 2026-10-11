@@ -11,7 +11,6 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Sparkles,
   User,
   XCircle,
 } from "lucide-react";
@@ -273,7 +272,7 @@ function ReviewForm({ invoiceId, existingReview, onReviewed }) {
       </div>
       {error && <p className="text-xs text-rose-600">{error}</p>}
       <button type="submit" disabled={submitting||!decision||!reason.trim()}
-        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-50">
+        className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
         <ShieldCheck size={15}/>
         {submitting?"Submitting…":"Submit Review"}
       </button>
@@ -355,9 +354,9 @@ export default function InvoiceDetail() {
         <div className="flex flex-1 items-center justify-center text-sm text-slate-400">
           Loading invoice…
         </div>
-      </div>
-    </main>
-  );
+      </main>
+    );
+  }
   if (error||!invoice) return (
     <main className="flex min-h-screen bg-[#f5f6fb]"><Sidebar expanded/>
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
@@ -375,7 +374,7 @@ export default function InvoiceDetail() {
       <div className="min-w-0 flex-1">
 
         {/* header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
           <div className="flex items-center gap-3">
             <Link to="/dashboard/invoices" className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-indigo-600 transition">
               <ChevronLeft size={15}/> Invoices
@@ -476,7 +475,7 @@ export default function InvoiceDetail() {
                   <div className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-50 text-slate-300"><ShieldAlert size={26}/></div>
                   <p className="text-xs text-slate-400">Not analyzed yet</p>
                   <button onClick={runFraudCheck} disabled={runningFraud} type="button"
-                    className="rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/20 disabled:opacity-50">
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
                     {runningFraud?"Running…":"Run Fraud Check"}
                   </button>
                 </div>
@@ -509,7 +508,7 @@ export default function InvoiceDetail() {
           </div>
 
           {/* ── AI Analysis panel ───────────────────────────────────────── */}
-          <section className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-slate-50 p-5 shadow-sm">
+          <section className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <BrainCircuit size={15} className="text-indigo-500" />
@@ -524,7 +523,7 @@ export default function InvoiceDetail() {
                 type="button"
                 className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-60"
               >
-                <Sparkles size={13} />
+                
                 {runningAI ? "Analyzing… (may take 30s)" : aiAnalysis ? "Re-run AI Analysis" : "Run AI Analysis"}
               </button>
             </div>
@@ -593,7 +592,7 @@ export default function InvoiceDetail() {
                 {aiAnalysis.ai_explanation && (
                   <div className="rounded-lg border border-indigo-100 bg-white p-4">
                     <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-400">
-                      <Sparkles size={11} /> AI-Generated Analysis
+                      AI-Generated Analysis
                     </p>
                     <p className="text-xs leading-5 text-slate-600">{aiAnalysis.ai_explanation}</p>
                     <p className="mt-2 text-[10px] text-slate-400 italic">
