@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity,
   AlertTriangle,
   Bell,
@@ -358,7 +358,7 @@ export default function InvoiceDetail() {
     );
   }
   if (error||!invoice) return (
-    <main className="flex min-h-screen bg-[#f5f6fb]"><Sidebar expanded/>
+    <main className="flex min-h-screen bg-[var(--bg-base)]"><Sidebar expanded/>
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-rose-600">{error||"Invoice not found"}</p>
         <Link to="/dashboard/invoices" className="text-xs font-semibold text-indigo-600 hover:underline">← Back to invoices</Link>
@@ -369,7 +369,7 @@ export default function InvoiceDetail() {
   const fc = fraud ? {critical:fraud.critical_count,high:fraud.high_count,medium:fraud.medium_count,low:fraud.low_count} : null;
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 

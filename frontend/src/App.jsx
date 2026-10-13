@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/login/Login'
 import Signup from './pages/signup/Signup'
+import ForgotPassword from './pages/forgotPassword/ForgotPassword'
 import Dashboard from './pages/dashboard/Dashboard'
 import UploadInvoice from './pages/dashboard/uploadInvoice/UploadInvoice'
 import Invoices from './pages/dashboard/invoices/Invoices'
@@ -15,8 +16,9 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login"  element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      <Route path="/login"           element={<Login />} />
+      <Route path="/signup"          element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* Protected — any authenticated user */}
       <Route element={<ProtectedRoute />}>

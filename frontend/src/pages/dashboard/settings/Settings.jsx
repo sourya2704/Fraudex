@@ -1,8 +1,9 @@
-import { Bell, Camera, Lock, Moon, Save, ShieldCheck, Sun, Trash2 } from "lucide-react";
+﻿import { Bell, Camera, Lock, Moon, Save, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import apiClient from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { useAvatar } from "../../../context/AvatarContext";
+import { useTheme } from "../../../context/ThemeContext";
 import Sidebar from "../../Sidebar/Sidebar";
 
 const ROLE_META = {
@@ -54,9 +55,9 @@ function PwdStrength({ pwd }) {
 export default function Settings() {
   const { user: authUser } = useAuth();
   const { avatar, setAvatar, clearAvatar } = useAvatar();
+  const { dark, toggle: toggleDark } = useTheme();
 
   const [profile, setProfile] = useState(null);
-  const [dark,    setDark]    = useState(() => localStorage.getItem("fraudex-theme") === "dark");
   const [sms,     setSms]     = useState(true);
 
   const [pwd,       setPwd]       = useState({ current: "", next: "", confirm: "" });
@@ -71,11 +72,6 @@ export default function Settings() {
   useEffect(() => {
     apiClient.get("/auth/me").then(r => setProfile(r.data)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("fraudex-theme", dark ? "dark" : "light");
-  }, [dark]);
 
   const name     = profile?.name  || authUser?.name  || "—";
   const email    = profile?.email || authUser?.email || "—";
@@ -129,7 +125,7 @@ export default function Settings() {
   }
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded />
       <div className="min-w-0 flex-1">
 
@@ -334,7 +330,7 @@ export default function Settings() {
                     <p className="text-xs text-slate-400">Switch to a darker interface</p>
                   </div>
                 </div>
-                <Toggle on={dark} onToggle={() => setDark(d => !d)} label="Dark mode" />
+                <Toggle on={dark} onToggle={toggleDark} label="Dark mode" />
               </div>
 
               {/* sms alerts */}

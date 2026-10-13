@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, ChevronRight, FileText, RefreshCw, Search, Upload } from "lucide-react";
+﻿import { Bell, ChevronDown, ChevronRight, FileText, RefreshCw, Search, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../../api/client";
@@ -77,7 +77,7 @@ export default function Invoices() {
   ];
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 

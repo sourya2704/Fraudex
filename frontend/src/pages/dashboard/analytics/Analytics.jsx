@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Bell, RefreshCw, Search, ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
+﻿import { Activity, BarChart3, Bell, RefreshCw, Search, ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../../api/client";
@@ -232,7 +232,7 @@ export default function Analytics() {
   const trendData = window===7?t7:t30;
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 

@@ -4,7 +4,9 @@
 /* ── Tailwind v4 dark mode — triggered by html.dark class ─────────────────── */
 @variant dark (&:where(.dark, .dark *));
 
-/* ── CSS Custom Properties ───────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  DESIGN TOKENS                                                              */
+/* ─────────────────────────────────────────────────────────────────────────── */
 :root {
   --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
 
@@ -15,32 +17,106 @@
   --accent:       #c7f36b;
 
   /* Backgrounds */
-  --bg-base:      #f8f9fc;
+  --bg-base:      #f5f6fb;
   --bg-card:      #ffffff;
   --bg-subtle:    #f1f3f9;
-  --bg-hover:     #f4f6fb;
+  --bg-hover:     #eceef6;
+  --bg-input:     #ffffff;
 
   /* Borders */
-  --border:       #e4e7f0;
+  --border:       #e2e6f0;
+  --border-strong:#c8cfe0;
   --border-focus: #6366f1;
 
   /* Text */
   --text-primary:   #0f1117;
   --text-secondary: #4b5468;
   --text-muted:     #8b92a5;
+  --text-placeholder: #b0b8cc;
 
-  /* Sidebar */
-  --sidebar-bg:   #0d1117;
-  --sidebar-border: rgba(255,255,255,0.06);
+  /* Sidebar (always dark) */
+  --sidebar-bg:     linear-gradient(180deg, #0f1219 0%, #0f1827 100%);
+  --sidebar-border: rgba(255,255,255,0.05);
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(15,17,23,0.06), 0 1px 2px rgba(15,17,23,0.04);
-  --shadow-md:  0 4px 16px rgba(15,17,23,0.08), 0 2px 6px rgba(15,17,23,0.04);
-  --shadow-lg:  0 12px 40px rgba(15,17,23,0.10), 0 4px 12px rgba(15,17,23,0.06);
-  --shadow-brand: 0 8px 24px rgba(99,102,241,0.28);
+  --shadow-xs:  0 1px 2px rgba(15,17,23,0.05);
+  --shadow-sm:  0 1px 4px rgba(15,17,23,0.07), 0 1px 2px rgba(15,17,23,0.04);
+  --shadow-md:  0 4px 16px rgba(15,17,23,0.09), 0 2px 6px rgba(15,17,23,0.05);
+  --shadow-lg:  0 12px 40px rgba(15,17,23,0.11), 0 4px 12px rgba(15,17,23,0.06);
+  --shadow-brand: 0 6px 20px rgba(99,102,241,0.30);
+
+  /* Semantic badge tokens — risk levels */
+  --badge-critical-bg:    #fff1f2;
+  --badge-critical-text:  #e11d48;
+  --badge-critical-border:#fecdd3;
+
+  --badge-high-bg:    #fff7ed;
+  --badge-high-text:  #ea580c;
+  --badge-high-border:#fed7aa;
+
+  --badge-medium-bg:    #fffbeb;
+  --badge-medium-text:  #d97706;
+  --badge-medium-border:#fde68a;
+
+  --badge-low-bg:    #f0fdf4;
+  --badge-low-text:  #16a34a;
+  --badge-low-border:#bbf7d0;
+
+  --badge-info-bg:    #eff6ff;
+  --badge-info-text:  #2563eb;
+  --badge-info-border:#bfdbfe;
 }
 
-/* ── Reset ───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  DARK MODE TOKENS                                                           */
+/* ─────────────────────────────────────────────────────────────────────────── */
+html.dark {
+  --bg-base:      #0d1117;
+  --bg-card:      #161b27;
+  --bg-subtle:    #1e2535;
+  --bg-hover:     #222b3a;
+  --bg-input:     #1e2535;
+
+  --border:       rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.14);
+
+  --text-primary:   #eef0f8;
+  --text-secondary: #9aa3bc;
+  --text-muted:     #55617a;
+  --text-placeholder:#404d65;
+
+  /* Darker, richer shadows for dark mode */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.25);
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.20);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-brand: 0 6px 20px rgba(99,102,241,0.40);
+
+  /* Risk badge tokens — muted for dark */
+  --badge-critical-bg:    rgba(225,29,72,0.15);
+  --badge-critical-text:  #fb7185;
+  --badge-critical-border:rgba(225,29,72,0.25);
+
+  --badge-high-bg:    rgba(234,88,12,0.15);
+  --badge-high-text:  #fb923c;
+  --badge-high-border:rgba(234,88,12,0.25);
+
+  --badge-medium-bg:    rgba(217,119,6,0.15);
+  --badge-medium-text:  #fbbf24;
+  --badge-medium-border:rgba(217,119,6,0.25);
+
+  --badge-low-bg:    rgba(22,163,74,0.15);
+  --badge-low-text:  #4ade80;
+  --badge-low-border:rgba(22,163,74,0.25);
+
+  --badge-info-bg:    rgba(37,99,235,0.15);
+  --badge-info-text:  #60a5fa;
+  --badge-info-border:rgba(37,99,235,0.25);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  BASE RESETS                                                                */
+/* ─────────────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
@@ -50,57 +126,55 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--bg-base);
-}
+body { margin: 0; min-height: 100vh; background: var(--bg-base); }
 
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
-/* ── Selection ───────────────────────────────────────────────────────────── */
-::selection { background: var(--accent); color: #0f1117; }
+::selection { background: rgba(99,102,241,0.25); color: var(--text-primary); }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  SCROLLBAR                                                                  */
+/* ─────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: #d1d5e0;
-  border-radius: 999px;
-}
+::-webkit-scrollbar-thumb { background: #d1d5e0; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #a8afc4; }
+html.dark ::-webkit-scrollbar-thumb { background: #2a3550; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4870; }
 
-/* ── Card surface ─────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  UTILITY CLASSES                                                            */
+/* ─────────────────────────────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-/* ── Input base ──────────────────────────────────────────────────────────── */
 .input-base {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 11px 14px;
+  padding: 10px 14px;
   font-size: 14px;
   color: var(--text-primary);
-  background: var(--bg-card);
+  background: var(--bg-input);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.2s;
 }
 .input-base:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
 }
-.input-base::placeholder { color: var(--text-muted); }
+.input-base::placeholder { color: var(--text-placeholder); }
 
-/* ── Button base ─────────────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -119,11 +193,10 @@ button:disabled { cursor: not-allowed; }
 .btn-primary:hover:not(:disabled) {
   background: var(--brand-dark);
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px rgba(99,102,241,0.32);
+  box-shadow: 0 10px 28px rgba(99,102,241,0.38);
 }
 .btn-primary:disabled { opacity: 0.55; box-shadow: none; }
 
-/* ── Glassmorphism card (auth pages) ─────────────────────────────────────── */
 .glass-card {
   background: rgba(255,255,255,0.72);
   backdrop-filter: blur(20px);
@@ -133,7 +206,6 @@ button:disabled { cursor: not-allowed; }
   box-shadow: 0 20px 60px rgba(15,17,23,0.12), 0 4px 16px rgba(15,17,23,0.06);
 }
 
-/* ── Badge helpers ───────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -145,7 +217,6 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid transparent;
 }
 
-/* ── Gradient text ───────────────────────────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   -webkit-background-clip: text;
@@ -153,132 +224,123 @@ button:disabled { cursor: not-allowed; }
   background-clip: text;
 }
 
-/* ── Dark mode ───────────────────────────────────────────────────────────── */
-html.dark {
-  --bg-base:      #0d1117;
-  --bg-card:      #161b27;
-  --bg-subtle:    #1e2535;
-  --bg-hover:     #1a2030;
-  --border:       rgba(255,255,255,0.07);
-  --text-primary:   #eef0f8;
-  --text-secondary: #a0a8bf;
-  --text-muted:     #5a6480;
-}
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  DARK MODE — GLOBAL OVERRIDES                                               */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
-html.dark body { background: var(--bg-base); color: var(--text-primary); }
-html.dark .card { background: var(--bg-card); border-color: var(--border); }
-html.dark .glass-card {
-  background: rgba(22,27,39,0.85);
-  border-color: rgba(255,255,255,0.08);
-}
-html.dark .input-base {
-  background: var(--bg-subtle);
-  border-color: var(--border);
-  color: var(--text-primary);
-}
-html.dark ::-webkit-scrollbar-thumb { background: #2a3047; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4260; }
-
-/* ── Dark mode — page backgrounds ────────────────────────────────────────── */
+/* Page backgrounds */
+html.dark body,
 html.dark main,
-html.dark .min-h-screen {
-  background: var(--bg-base) !important;
-}
+html.dark .min-h-screen { background: var(--bg-base) !important; }
 
-/* ── Dark mode — white surfaces → dark cards ─────────────────────────────── */
-html.dark .bg-white,
-html.dark [class*="bg-white"] {
-  background-color: var(--bg-card) !important;
-}
+/* Card / white surfaces */
+html.dark .bg-white { background-color: var(--bg-card) !important; }
+html.dark .bg-slate-50   { background-color: var(--bg-subtle) !important; }
+html.dark .bg-slate-100  { background-color: var(--bg-subtle) !important; }
+html.dark [class*="bg-[#f5"], html.dark [class*="bg-[#f8"],
+html.dark [class*="bg-[#f1"] { background-color: var(--bg-subtle) !important; }
 
-/* ── Dark mode — light grey backgrounds → dark subtle ───────────────────── */
-html.dark .bg-slate-50,
-html.dark .bg-slate-100,
-html.dark [class*="bg-\[#f"] {
-  background-color: var(--bg-subtle) !important;
-}
-
-/* ── Dark mode — borders ─────────────────────────────────────────────────── */
-html.dark .border-slate-200,
+/* Borders */
 html.dark .border-slate-100,
-html.dark [class*="border-slate-2"],
-html.dark [class*="border-slate-1"] {
-  border-color: var(--border) !important;
-}
+html.dark .border-slate-200 { border-color: var(--border) !important; }
+html.dark .divide-slate-50  > * + *,
+html.dark .divide-slate-100 > * + *,
+html.dark .divide-y         > * + * { border-color: var(--border) !important; }
 
-/* ── Dark mode — text ────────────────────────────────────────────────────── */
-html.dark .text-slate-900,
-html.dark .text-slate-800,
-html.dark .text-slate-700 {
-  color: var(--text-primary) !important;
-}
+/* Text */
+html.dark .text-slate-900, html.dark .text-slate-800,
+html.dark .text-slate-700  { color: var(--text-primary)   !important; }
+html.dark .text-slate-600, html.dark .text-slate-500
+                           { color: var(--text-secondary) !important; }
+html.dark .text-slate-400, html.dark .text-slate-300
+                           { color: var(--text-muted)     !important; }
 
-html.dark .text-slate-600,
-html.dark .text-slate-500 {
-  color: var(--text-secondary) !important;
-}
+/* Header / sticky bar */
+html.dark header { background: rgba(22,27,39,0.92) !important; border-color: var(--border) !important; backdrop-filter: blur(12px); }
 
-html.dark .text-slate-400,
-html.dark .text-slate-300 {
-  color: var(--text-muted) !important;
-}
-
-/* ── Dark mode — headers & sticky bars ───────────────────────────────────── */
-html.dark header.border-b,
-html.dark .sticky.border-b {
-  background: rgba(22,27,39,0.90) !important;
-  border-color: var(--border) !important;
-  backdrop-filter: blur(12px);
-}
-
-/* ── Dark mode — inputs ──────────────────────────────────────────────────── */
-html.dark input,
+/* Inputs */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 html.dark select,
 html.dark textarea {
-  background-color: var(--bg-subtle) !important;
+  background-color: var(--bg-input) !important;
   border-color: var(--border) !important;
   color: var(--text-primary) !important;
 }
 html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: var(--text-muted) !important;
-}
+html.dark textarea::placeholder { color: var(--text-placeholder) !important; }
 
-/* ── Dark mode — tables ──────────────────────────────────────────────────── */
-html.dark thead,
-html.dark .bg-slate-50\/70,
-html.dark th {
-  background-color: var(--bg-subtle) !important;
-  color: var(--text-muted) !important;
-}
+/* Tables */
+html.dark thead th { background-color: var(--bg-subtle) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+html.dark tbody tr:hover { background-color: var(--bg-hover) !important; }
+html.dark .bg-slate-50\/80 { background-color: var(--bg-subtle) !important; }
 
-html.dark tbody tr:hover {
-  background-color: var(--bg-hover) !important;
-}
+/* Hover states */
+html.dark [class*="hover:bg-slate"]:hover    { background-color: var(--bg-hover) !important; }
+html.dark [class*="hover:bg-indigo-50"]:hover { background-color: rgba(99,102,241,0.1) !important; }
 
-html.dark .divide-slate-100 > * + * {
-  border-color: var(--border) !important;
-}
+/* Shadows */
+html.dark .shadow-sm  { box-shadow: var(--shadow-sm)  !important; }
+html.dark .shadow-md  { box-shadow: var(--shadow-md)  !important; }
+html.dark .shadow-lg  { box-shadow: var(--shadow-lg)  !important; }
+html.dark .shadow-xl  { box-shadow: 0 20px 50px rgba(0,0,0,0.55) !important; }
 
-/* ── Dark mode — hover states ────────────────────────────────────────────── */
-html.dark .hover\:bg-slate-50\/60:hover,
-html.dark .hover\:bg-slate-50:hover {
-  background-color: var(--bg-hover) !important;
-}
+/* Glass card dark */
+html.dark .glass-card { background: rgba(22,27,39,0.88) !important; border-color: rgba(255,255,255,0.09) !important; }
 
-/* ── Dark mode — notification/dropdown panels ────────────────────────────── */
-html.dark .shadow-xl {
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
-}
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  DARK MODE — RISK / STATUS BADGE OVERRIDES                                 */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
-/* ── Dark mode — badge/chip backgrounds ─────────────────────────────────── */
-html.dark .bg-slate-100 {
-  background-color: var(--bg-subtle) !important;
-}
+/* Critical */
+html.dark .bg-rose-50    { background-color: var(--badge-critical-bg)     !important; }
+html.dark .text-rose-600 { color:            var(--badge-critical-text)   !important; }
+html.dark .border-rose-200{ border-color:    var(--badge-critical-border) !important; }
+html.dark .text-rose-800 { color: #fda4af !important; }
+html.dark .text-rose-500 { color: var(--badge-critical-text) !important; }
+html.dark .bg-rose-100   { background-color: rgba(225,29,72,0.2) !important; }
 
-html.dark .rounded-full.bg-slate-100,
-html.dark .rounded-lg.bg-slate-100,
-html.dark .rounded-xl.bg-slate-100 {
-  background-color: var(--bg-subtle) !important;
-  color: var(--text-secondary) !important;
-}
+/* High (orange) */
+html.dark .bg-orange-50     { background-color: var(--badge-high-bg)     !important; }
+html.dark .text-orange-600  { color:            var(--badge-high-text)   !important; }
+html.dark .border-orange-200{ border-color:     var(--badge-high-border) !important; }
+html.dark .text-orange-500  { color: var(--badge-high-text) !important; }
+
+/* Medium (amber) */
+html.dark .bg-amber-50     { background-color: var(--badge-medium-bg)     !important; }
+html.dark .text-amber-600  { color:            var(--badge-medium-text)   !important; }
+html.dark .border-amber-200{ border-color:     var(--badge-medium-border) !important; }
+html.dark .text-amber-500  { color: var(--badge-medium-text) !important; }
+html.dark .bg-amber-100    { background-color: rgba(217,119,6,0.2) !important; }
+
+/* Low (emerald/green) */
+html.dark .bg-emerald-50      { background-color: var(--badge-low-bg)     !important; }
+html.dark .text-emerald-600   { color:            var(--badge-low-text)   !important; }
+html.dark .border-emerald-200 { border-color:     var(--badge-low-border) !important; }
+html.dark .text-emerald-700   { color: var(--badge-low-text) !important; }
+html.dark .bg-emerald-100     { background-color: rgba(22,163,74,0.2) !important; }
+
+/* Info (blue/indigo) */
+html.dark .bg-blue-50      { background-color: var(--badge-info-bg)     !important; }
+html.dark .text-blue-600   { color:            var(--badge-info-text)   !important; }
+html.dark .border-blue-200 { border-color:     var(--badge-info-border) !important; }
+html.dark .text-blue-700   { color: var(--badge-info-text) !important; }
+
+/* Violet/purple */
+html.dark .bg-violet-50      { background-color: rgba(109,40,217,0.15) !important; }
+html.dark .text-violet-600   { color: #c4b5fd !important; }
+html.dark .border-violet-200 { border-color: rgba(109,40,217,0.25) !important; }
+
+/* Indigo badge (not nav) */
+html.dark .bg-indigo-50    { background-color: rgba(99,102,241,0.15) !important; }
+html.dark .text-indigo-600 { color: #818cf8 !important; }
+html.dark .border-indigo-200{ border-color: rgba(99,102,241,0.25) !important; }
+html.dark .text-indigo-500 { color: #818cf8 !important; }
+html.dark .bg-indigo-100   { background-color: rgba(99,102,241,0.2) !important; }
+
+/* Ring overrides */
+html.dark .ring-white { --tw-ring-color: var(--bg-card) !important; }
+html.dark [class*="ring-4"][class*="ring-white"] { box-shadow: 0 0 0 4px var(--bg-card) !important; }
+
+/* Notification bell dark */
+html.dark [class*="bg-white"][class*="shadow-xl"],
+html.dark [class*="bg-white"][class*="rounded-2xl"] { background-color: var(--bg-card) !important; }

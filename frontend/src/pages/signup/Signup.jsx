@@ -1,4 +1,4 @@
-import { Eye, EyeOff, ShieldCheck, CheckCircle2 } from "lucide-react";
+﻿import { Eye, EyeOff, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import apiClient from "../../api/client";
@@ -145,7 +145,7 @@ export default function Signup() {
       </div>
 
       {/* ── RIGHT FORM ─────────────────────────────────────────────────── */}
-      <div className="flex flex-1 items-center justify-center bg-[#f8f9fc] p-8 lg:p-16">
+      <div className="flex flex-1 items-center justify-center bg-[var(--bg-base)] p-8 lg:p-16">
         <div className="w-full max-w-[400px]">
 
           <div className="mb-10 flex items-center gap-3 lg:hidden">

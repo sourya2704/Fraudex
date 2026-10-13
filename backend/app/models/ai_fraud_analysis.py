@@ -1,5 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.connection import Base
@@ -24,8 +23,8 @@ class AIFraudAnalysis(Base):
     risk_level = Column(String(20), nullable=True)
 
     ai_explanation = Column(Text, nullable=True)
-    evidence_used = Column(JSONB, nullable=True)
-    agent_trace = Column(JSONB, nullable=True)
+    evidence_used = Column(JSON, nullable=True)  # JSON works with both SQLite and PostgreSQL
+    agent_trace = Column(JSON, nullable=True)
 
     analyzed_at = Column(
         DateTime(timezone=True),

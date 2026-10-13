@@ -1,4 +1,4 @@
-import { Eye, EyeOff, ShieldCheck, Zap, TrendingUp, Lock } from "lucide-react";
+﻿import { Eye, EyeOff, ShieldCheck, Zap, TrendingUp, Lock } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -113,7 +113,7 @@ export default function Login() {
       </div>
 
       {/* ── RIGHT  FORM ────────────────────────────────────────────────── */}
-      <div className="flex flex-1 items-center justify-center bg-[#f8f9fc] p-8 lg:p-16">
+      <div className="flex flex-1 items-center justify-center bg-[var(--bg-base)] p-8 lg:p-16">
         <div className="w-full max-w-[400px]">
 
           {/* mobile logo */}
@@ -147,7 +147,7 @@ export default function Login() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-700" htmlFor="password">Password</label>
-                <button type="button" tabIndex={-1} className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                <button type="button" tabIndex={-1} onClick={() => navigate("/forgot-password")} className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
                   Forgot password?
                 </button>
               </div>

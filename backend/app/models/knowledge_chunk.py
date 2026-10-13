@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Integer, String, Text, JSON
 from sqlalchemy.sql import func
-from pgvector.sqlalchemy import Vector
 from app.database.connection import Base
 
 
@@ -11,5 +10,5 @@ class KnowledgeChunk(Base):
     document_name = Column(String(255), nullable=False, index=True)
     source_type = Column(String(50), nullable=False, default="policy")
     chunk_text = Column(Text, nullable=False)
-    embedding = Column(Vector(768), nullable=True)
+    embedding = Column(JSON, nullable=True)   # stored as float list — works without pgvector extension
     created_at = Column(DateTime(timezone=True), server_default=func.now())

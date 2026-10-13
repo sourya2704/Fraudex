@@ -1,10 +1,19 @@
 from typing import Optional
+import numpy as np
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from app.models.knowledge_chunk import KnowledgeChunk
 from app.rag.embeddings import embed_text, embed_texts
 from app.rag.chunker import chunk_text
 from app.rag.config import RAG_TOP_K
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Pure numpy cosine similarity — no pgvector extension needed."""
+    va, vb = np.array(a, dtype=np.float32), np.array(b, dtype=np.float32)
+    denom = np.linalg.norm(va) * np.linalg.norm(vb)
+    if denom == 0:
+        return 0.0
+    return float(np.dot(va, vb) / denom)
 
 
 class RAGStore:
@@ -32,7 +41,7 @@ class RAGStore:
                 document_name=document_name,
                 source_type=source_type,
                 chunk_text=chunk_text_val,
-                embedding=embedding,
+                embedding=embedding,   # list[float] stored as JSON
             )
             self.db.add(chunk)
 
@@ -53,12 +62,20 @@ class RAGStore:
                 KnowledgeChunk.source_type == source_type
             )
 
-        results = (
-            base_query
-            .order_by(KnowledgeChunk.embedding.cosine_distance(query_embedding))
-            .limit(top_k)
-            .all()
-        )
+        all_chunks = base_query.all()
+
+        if not all_chunks:
+            return []
+
+        # Python-side cosine similarity (no pgvector SQL extension needed)
+        scored = []
+        for chunk in all_chunks:
+            if chunk.embedding:
+                sim = _cosine_similarity(query_embedding, chunk.embedding)
+                scored.append((sim, chunk))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top = scored[:top_k]
 
         return [
             {
@@ -66,8 +83,9 @@ class RAGStore:
                 "document_name": r.document_name,
                 "source_type": r.source_type,
                 "chunk_text": r.chunk_text,
+                "similarity": round(sim, 4),
             }
-            for r in results
+            for sim, r in top
         ]
 
     def list_documents(self) -> list[dict]:

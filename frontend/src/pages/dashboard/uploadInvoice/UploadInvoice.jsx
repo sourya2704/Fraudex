@@ -1,4 +1,4 @@
-import { Bell, CheckCircle2, FileText, Search, UploadCloud, X, Zap } from "lucide-react";
+﻿import { Bell, CheckCircle2, FileText, Search, UploadCloud, X, Zap } from "lucide-react";
 import { useRef, useState } from "react";
 import Sidebar from "../../Sidebar/Sidebar";
 import InvoiceProcessing from "./InvoiceProcessing";
@@ -50,7 +50,7 @@ export default function UploadInvoice() {
   );
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 

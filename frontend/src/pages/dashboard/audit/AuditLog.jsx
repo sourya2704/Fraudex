@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity, Bell, CheckCircle, ChevronDown, Clock,
   FileSearch, FileUp, Search, ShieldAlert, User, XCircle,
 } from "lucide-react";
@@ -212,7 +212,7 @@ export default function AuditLog() {
   const invIds = [...new Set(logs.map(e=>e.invoice_id).filter(Boolean))];
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 

@@ -10,11 +10,11 @@ import {
   ShieldAlert,
   Sun,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoSvg from "../../assets/logo.svg";
 import { useAuth } from "../../context/AuthContext";
 import { useAvatar } from "../../context/AvatarContext";
+import { useTheme } from "../../context/ThemeContext";
 
 const NAV = [
   { label: "Dashboard",       Icon: LayoutDashboard, href: "/dashboard" },
@@ -39,12 +39,7 @@ export default function Sidebar({ expanded = true }) {
   const location         = useLocation();
   const { logout, user } = useAuth();
   const { avatar }       = useAvatar();
-  const [dark, setDark]  = useState(() => localStorage.getItem("fraudex-theme") === "dark");
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("fraudex-theme", dark ? "dark" : "light");
-  }, [dark]);
+  const { dark, toggle } = useTheme();
 
   const initials = user?.name
     ? user.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase()
@@ -156,7 +151,7 @@ export default function Sidebar({ expanded = true }) {
         )}
 
         {/* Dark mode toggle */}
-        <button type="button" title={dark ? "Light mode" : "Dark mode"} onClick={() => setDark(d => !d)}
+        <button type="button" title={dark ? "Light mode" : "Dark mode"} onClick={toggle}
           className={`flex h-[40px] w-full items-center rounded-xl px-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200 ${expanded ? "gap-3" : "justify-center"}`}>
           {dark
             ? <Sun  size={17} strokeWidth={1.9} className="shrink-0" />

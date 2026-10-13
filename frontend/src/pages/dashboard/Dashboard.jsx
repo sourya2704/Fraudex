@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity, ChevronRight, CircleAlert,
   Clock3, FileUp, RefreshCw, Search,
   ShieldAlert, ShieldCheck, TrendingUp,
@@ -138,7 +138,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar />
       <div className="min-w-0 flex-1">
 

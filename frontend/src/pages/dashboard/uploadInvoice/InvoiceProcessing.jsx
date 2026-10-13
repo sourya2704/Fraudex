@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, CheckCircle2, FileText, ShieldCheck } from "lucide-react";
+﻿import { AlertTriangle, ArrowRight, CheckCircle2, FileText, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import Sidebar from "../../Sidebar/Sidebar";
 
@@ -9,7 +9,7 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
   const issues    = validation?.validation?.issues        || [];
 
   return (
-    <main className="flex min-h-screen bg-[#f5f6fb]">
+    <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
 
