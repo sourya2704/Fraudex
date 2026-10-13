@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
 from app.core.security import hash_password, verify_password
+from app.models.password_history import PasswordHistory
 from app.models.password_reset import PasswordResetOTP
 from app.models.user import User
 
@@ -217,6 +218,25 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     if not record or not verify_password(body.otp, record.otp_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP.")
 
+    # ── Check last 2 passwords ─────────────────────────────────────────────
+    last_2 = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.user_id == user.id)
+        .order_by(PasswordHistory.created_at.desc())
+        .limit(2)
+        .all()
+    )
+    for old in last_2:
+        if verify_password(body.new_password, old.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot reuse your last 2 passwords. Please choose a different password.",
+            )
+
+    # ── Save current password to history before overwriting ───────────────
+    db.add(PasswordHistory(user_id=user.id, password_hash=user.password_hash))
+
+    # ── Update password + mark OTP used ───────────────────────────────────
     user.password_hash = hash_password(body.new_password)
     record.used = True
     db.commit()

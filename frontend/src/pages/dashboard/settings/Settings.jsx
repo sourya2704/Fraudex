@@ -111,17 +111,25 @@ export default function Settings() {
     e.target.value = "";
   }
 
-  function submitPwd(e) {
+  async function submitPwd(e) {
     e.preventDefault();
     if (!pwd.current)              { setPwdMsg({ text: "Current password is required.", type: "error" }); return; }
     if (pwd.next.length < 6)       { setPwdMsg({ text: "New password must be at least 6 characters.", type: "error" }); return; }
     if (pwd.next !== pwd.confirm)   { setPwdMsg({ text: "Passwords do not match.", type: "error" }); return; }
     setPwdLoading(true);
-    setTimeout(() => {
-      setPwdLoading(false);
-      setPwdMsg({ text: "Password update endpoint coming soon.", type: "info" });
+    setPwdMsg({ text: "", type: "" });
+    try {
+      await apiClient.post("/auth/change-password", {
+        current_password: pwd.current,
+        new_password:     pwd.next,
+      });
+      setPwdMsg({ text: "Password changed successfully!", type: "success" });
       setPwd({ current: "", next: "", confirm: "" });
-    }, 800);
+    } catch (err) {
+      setPwdMsg({ text: err.response?.data?.detail || "Failed to change password.", type: "error" });
+    } finally {
+      setPwdLoading(false);
+    }
   }
 
   return (
