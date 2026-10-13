@@ -1,11 +1,9 @@
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
-
+from typing import Any, List, Optional
 
 _AMOUNT_TOLERANCE = Decimal("0.05")
-
 
 _REQUIRED_FIELDS = [
     "invoice_number",
@@ -13,12 +11,10 @@ _REQUIRED_FIELDS = [
     "total_amount",
 ]
 
-
 class Severity:
     ERROR = "ERROR"
     WARNING = "WARNING"
     INFO = "INFO"
-
 
 @dataclass
 class ValidationIssue:
@@ -35,7 +31,6 @@ class ValidationIssue:
             "field": self.field_name,
         }
 
-
 @dataclass
 class ValidationResult:
     issues: list[ValidationIssue] = field(default_factory=list)
@@ -45,7 +40,6 @@ class ValidationResult:
 
     @property
     def valid(self) -> bool:
-
         return not any(i.severity == Severity.ERROR for i in self.issues)
 
     def to_dict(self) -> dict:
@@ -56,12 +50,13 @@ class ValidationResult:
             "issues": [i.to_dict() for i in self.issues],
         }
 
-
 def _is_negative(value: Any) -> bool:
     return isinstance(value, Decimal) and value < 0
 
-
-def validate_invoice_fields(fields: dict) -> ValidationResult:
+def validate_invoice_fields(
+    fields: dict,
+    items: Optional[List[Any]] = None,
+) -> ValidationResult:
     result = ValidationResult()
 
     invoice_number = fields.get("invoice_number")
@@ -72,7 +67,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
     total_amount = fields.get("total_amount")
     currency = fields.get("currency")
 
-
     for name in _REQUIRED_FIELDS:
         if fields.get(name) is None:
             result.add(
@@ -82,7 +76,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name=name,
             )
 
-
     if not currency:
         result.add(
             "MISSING_CURRENCY",
@@ -90,7 +83,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
             "Currency could not be determined",
             field_name="currency",
         )
-
 
     for name in ("subtotal", "tax", "total_amount"):
         if _is_negative(fields.get(name)):
@@ -100,7 +92,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 f"Amount '{name}' is negative ({fields.get(name)})",
                 field_name=name,
             )
-
 
     if (
         isinstance(subtotal, Decimal)
@@ -117,7 +108,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name="total_amount",
             )
 
-
     if isinstance(subtotal, Decimal) and isinstance(total_amount, Decimal):
         if total_amount < subtotal:
             result.add(
@@ -126,7 +116,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 f"Total ({total_amount}) is less than subtotal ({subtotal})",
                 field_name="total_amount",
             )
-
 
     if isinstance(invoice_date, date) and isinstance(due_date, date):
         if due_date < invoice_date:
@@ -137,7 +126,6 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
                 field_name="due_date",
             )
 
-
     if isinstance(total_amount, Decimal) and total_amount == 0:
         result.add(
             "ZERO_TOTAL",
@@ -145,5 +133,23 @@ def validate_invoice_fields(fields: dict) -> ValidationResult:
             "Total amount is zero",
             field_name="total_amount",
         )
+
+    if items and isinstance(subtotal, Decimal):
+        item_totals = [
+            Decimal(str(i.line_total))
+            for i in items
+            if i.line_total is not None
+        ]
+        if item_totals:
+            items_sum = sum(item_totals)
+            if abs(items_sum - subtotal) > _AMOUNT_TOLERANCE:
+                result.add(
+                    "LINE_ITEMS_SUBTOTAL_MISMATCH",
+                    Severity.ERROR,
+                    f"Sum of line-item totals ({items_sum}) does not match "
+                    f"invoice subtotal ({subtotal}). "
+                    f"Difference: {abs(items_sum - subtotal)}",
+                    field_name="subtotal",
+                )
 
     return result
