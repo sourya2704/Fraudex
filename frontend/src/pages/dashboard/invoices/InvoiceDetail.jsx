@@ -11,13 +11,15 @@
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import apiClient from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
+import { useAuth } from "../../../context/AuthContext";
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const STATUS_STYLE = {
@@ -283,6 +285,9 @@ function ReviewForm({ invoiceId, existingReview, onReviewed }) {
 /* ── Main page ────────────────────────────────────────────────────────────── */
 export default function InvoiceDetail() {
   const { invoiceId } = useParams();
+  const navigate      = useNavigate();
+  const { user }      = useAuth();
+  const isAdmin       = user?.role === "ADMIN";
   const [invoice, setInvoice]     = useState(null);
   const [fraud, setFraud]         = useState(null);
   const [validation, setValidation] = useState(null);
@@ -295,6 +300,8 @@ export default function InvoiceDetail() {
   const [runningAI, setRunningAI] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting]   = useState(false);
 
   async function loadAll() {
     try {
@@ -347,6 +354,18 @@ export default function InvoiceDetail() {
 
   function refresh() { setRefreshing(true); loadAll(); }
 
+  async function deleteInvoice() {
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/invoices/${invoiceId}`);
+      navigate("/dashboard/invoices");
+    } catch(e) {
+      alert(e.response?.data?.detail || "Failed to delete invoice.");
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen bg-[#f4f5f0]">
@@ -369,6 +388,7 @@ export default function InvoiceDetail() {
   const fc = fraud ? {critical:fraud.critical_count,high:fraud.high_count,medium:fraud.medium_count,low:fraud.low_count} : null;
 
   return (
+    <>
     <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
@@ -394,6 +414,15 @@ export default function InvoiceDetail() {
             <button type="button" className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400">
               <Bell size={13}/>
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition"
+              >
+                <Trash2 size={13}/> Delete
+              </button>
+            )}
           </div>
         </header>
 
@@ -660,5 +689,39 @@ export default function InvoiceDetail() {
         </div>
       </div>
     </main>
+
+    {/* ── Delete Confirm Modal ───────────────────────────────────────────── */}
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-rose-50 text-rose-600">
+            <Trash2 size={22}/>
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Delete Invoice #{invoiceId}?</h3>
+          <p className="mt-1.5 text-sm text-slate-500">
+            This will permanently delete this invoice and its uploaded file. This action cannot be undone.
+          </p>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+              className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={deleteInvoice}
+              disabled={deleting}
+              className="flex-1 rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60 transition"
+            >
+              {deleting ? "Deleting…" : "Yes, delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

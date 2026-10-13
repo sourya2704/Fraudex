@@ -1,8 +1,9 @@
-﻿import { Bell, ChevronDown, ChevronRight, FileText, RefreshCw, Search, Upload } from "lucide-react";
+﻿import { Bell, ChevronDown, ChevronRight, FileText, RefreshCw, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
+import { useAuth } from "../../../context/AuthContext";
 
 const STATUS_STYLE = {
   DOCUMENTS_UPLOADED:"bg-blue-50 text-blue-600 border-blue-200",
@@ -33,6 +34,8 @@ function fmt(d) { return d ? new Date(d).toLocaleDateString("en-IN",{day:"2-digi
 function fmtAmt(v,c) { return v==null?"—":`${c||""} ${parseFloat(v).toLocaleString("en-IN",{minimumFractionDigits:2})}`.trim(); }
 
 export default function Invoices() {
+  const { user }                    = useAuth();
+  const isAdmin                     = user?.role === "ADMIN";
   const [invoices,   setInvoices]   = useState([]);
   const [fraudMap,   setFraudMap]   = useState({});
   const [loading,    setLoading]    = useState(true);
@@ -41,6 +44,8 @@ export default function Invoices() {
   const [statusFilt, setStatusFilt] = useState("All");
   const [riskFilt,   setRiskFilt]   = useState("All");
   const [refreshing, setRefreshing] = useState(false);
+  const [deleting,   setDeleting]   = useState(null);   // invoice id being deleted
+  const [confirmId,  setConfirmId]  = useState(null);   // invoice id awaiting confirm
 
   async function loadData() {
     try {
@@ -60,6 +65,20 @@ export default function Invoices() {
   useEffect(()=>{ loadData(); },[]);
   const refresh = ()=>{ setRefreshing(true); loadData(); };
 
+  async function deleteInvoice(id) {
+    setDeleting(id);
+    try {
+      await apiClient.delete(`/invoices/${id}`);
+      setInvoices(prev => prev.filter(i => i.id !== id));
+      setFraudMap(prev => { const n = {...prev}; delete n[id]; return n; });
+    } catch(e) {
+      alert(e.response?.data?.detail || "Failed to delete invoice.");
+    } finally {
+      setDeleting(null);
+      setConfirmId(null);
+    }
+  }
+
   const visible = invoices.filter(inv=>{
     const q = query.toLowerCase();
     const mQ = !query||String(inv.id).includes(q)||(inv.invoice_number||"").toLowerCase().includes(q)||(inv.vendor?.name||"").toLowerCase().includes(q);
@@ -77,6 +96,7 @@ export default function Invoices() {
   ];
 
   return (
+    <>
     <main className="flex min-h-screen bg-[var(--bg-base)]">
       <Sidebar expanded/>
       <div className="min-w-0 flex-1">
@@ -135,8 +155,8 @@ export default function Invoices() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] text-left">
                 <thead className="border-b border-slate-100 bg-slate-50/80 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  <tr>{["#","Invoice No.","Vendor","Date","Amount","Status","Risk",""].map(c=>(
-                    <th key={c} className="px-5 py-3">{c}</th>
+                  <tr>{["#","Invoice No.","Vendor","Date","Amount","Status","Risk", isAdmin ? "Actions" : ""].map((c,i)=>(
+                    <th key={i} className="px-5 py-3">{c}</th>
                   ))}</tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -171,10 +191,22 @@ export default function Invoices() {
                           ) : <span className="text-[11px] text-slate-300">Not analyzed</span>}
                         </td>
                         <td className="px-5 py-3.5">
-                          <Link to={`/dashboard/invoices/${inv.id}`}
-                            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
-                            View<ChevronRight size={13}/>
-                          </Link>
+                          <div className="flex items-center gap-3">
+                            <Link to={`/dashboard/invoices/${inv.id}`}
+                              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                              View<ChevronRight size={13}/>
+                            </Link>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmId(inv.id)}
+                                disabled={deleting === inv.id}
+                                className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-700 disabled:opacity-40 transition"
+                              >
+                                <Trash2 size={13}/>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -193,5 +225,38 @@ export default function Invoices() {
         </div>
       </div>
     </main>
+
+    {/* ── Delete Confirm Modal ──────────────────────────────────────────── */}
+    {confirmId && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-rose-50 text-rose-600">
+            <Trash2 size={22}/>
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Delete Invoice #{confirmId}?</h3>
+          <p className="mt-1.5 text-sm text-slate-500">
+            This will permanently delete the invoice and its associated file. This action cannot be undone.
+          </p>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setConfirmId(null)}
+              className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteInvoice(confirmId)}
+              disabled={deleting === confirmId}
+              className="flex-1 rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60 transition"
+            >
+              {deleting === confirmId ? "Deleting…" : "Yes, delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

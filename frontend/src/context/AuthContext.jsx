@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import apiClient, { clearMemoryToken, setMemoryToken } from "../api/client";
 
 const LS_KEY = "fraudex-token";
+const SS_KEY = "fraudex-session-token"; // sessionStorage — survives reload, not browser close
 
 const AuthContext = createContext(null);
 
@@ -32,13 +33,13 @@ export function AuthProvider({ children }) {
 
   // ── Restore session on mount ─────────────────────────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem(LS_KEY);
+    // Check localStorage first (remember me), then sessionStorage (tab session)
+    const saved = localStorage.getItem(LS_KEY) || sessionStorage.getItem(SS_KEY);
     if (!saved) {
       setLoading(false);
       return;
     }
 
-    // Put the token in memory so the API interceptor sends it
     setMemoryToken(saved);
 
     apiClient
@@ -47,8 +48,8 @@ export function AuthProvider({ children }) {
         setUser(data);
       })
       .catch(() => {
-        // Token expired or invalid — clean up silently
         localStorage.removeItem(LS_KEY);
+        sessionStorage.removeItem(SS_KEY);
         clearMemoryToken();
       })
       .finally(() => setLoading(false));
@@ -62,6 +63,9 @@ export function AuthProvider({ children }) {
     setMemoryToken(token);
     if (remember) {
       localStorage.setItem(LS_KEY, token);
+    } else {
+      // No "remember me" — store in sessionStorage so reload still works
+      sessionStorage.setItem(SS_KEY, token);
     }
 
     // Fetch full user profile
@@ -79,6 +83,7 @@ export function AuthProvider({ children }) {
     }
     clearMemoryToken();
     localStorage.removeItem(LS_KEY);
+    sessionStorage.removeItem(SS_KEY);
     setUser(false);
     navigate("/login", { replace: true });
   }, [navigate]);

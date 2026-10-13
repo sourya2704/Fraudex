@@ -18,20 +18,40 @@ class ExtractionError(Exception):
     """Raised when text cannot be extracted from a document."""
 
 
-# Minimum characters for a PDF page's text layer to count as "real text".
-# Below this we assume the PDF is scanned and fall back to OCR.
 _MIN_TEXT_LAYER_CHARS = 20
+
+# Tesseract binary path — check env var first, then common Windows location, then PATH
+def _get_tesseract_cmd() -> str | None:
+    # 1. Explicit env var
+    env_path = os.getenv("TESSERACT_CMD")
+    if env_path and os.path.exists(env_path):
+        return env_path
+    # 2. Common Windows install path
+    win_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(win_path):
+        return win_path
+    # 3. System PATH
+    return shutil.which("tesseract")
 
 
 def _ocr_available() -> bool:
     """True only if both pytesseract (Python) and the tesseract binary exist."""
-    if shutil.which("tesseract") is None:
+    cmd = _get_tesseract_cmd()
+    if not cmd:
         return False
     try:
         import pytesseract  # noqa: F401
     except ImportError:
         return False
     return True
+
+
+def _configure_tesseract() -> None:
+    """Point pytesseract at the correct binary."""
+    import pytesseract
+    cmd = _get_tesseract_cmd()
+    if cmd:
+        pytesseract.pytesseract.tesseract_cmd = cmd
 
 
 def _extract_pdf_text_layer(path: str) -> str:
@@ -52,6 +72,7 @@ def _ocr_pdf(path: str) -> str:
     from PIL import Image
     import io
 
+    _configure_tesseract()
     texts = []
     with pymupdf.open(path) as doc:
         for page in doc:
@@ -66,6 +87,7 @@ def _ocr_image(path: str) -> str:
     import pytesseract
     from PIL import Image
 
+    _configure_tesseract()
     with Image.open(path) as img:
         return pytesseract.image_to_string(img).strip()
 
