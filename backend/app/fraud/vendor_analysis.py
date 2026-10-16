@@ -102,7 +102,7 @@ def analyze_vendor_risk(db: Session, invoice: Invoice) -> List[FraudFlag]:
         flags.append(
             FraudFlag(
                 code="UNKNOWN_VENDOR",
-                severity=Severity.HIGH,
+                severity=Severity.LOW,   # no vendor linked is common for new invoices
                 message="Invoice has no associated vendor",
                 evidence={"vendor_id": None},
                 field_name="vendor_id",

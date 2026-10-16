@@ -1,9 +1,10 @@
-﻿import { Bell, ChevronDown, ChevronRight, FileText, RefreshCw, Search, Trash2, Upload } from "lucide-react";
+﻿import { ChevronDown, ChevronRight, FileText, RefreshCw, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import { useAuth } from "../../../context/AuthContext";
+import NotificationBell from "../../../components/NotificationBell";
 
 const STATUS_STYLE = {
   DOCUMENTS_UPLOADED:"bg-blue-50 text-blue-600 border-blue-200",
@@ -103,24 +104,33 @@ export default function Invoices() {
 
         {/* ── Header ─────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">Invoices</h1>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Invoice management</p>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900">Invoices</h1>
+          </div>
           <div className="flex items-center gap-2">
-            <button onClick={refresh} type="button" className={`grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-indigo-600 ${refreshing?"animate-spin":""}`}><RefreshCw size={15}/></button>
-            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Bell size={15}/></button>
-            <Link to="/dashboard/upload-invoice" className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
-              <Upload size={14}/> Upload
+            <button onClick={refresh} type="button" className={`grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-indigo-600 transition ${refreshing?"animate-spin":""}`}><RefreshCw size={15}/></button>
+            <NotificationBell />
+            <Link to="/dashboard/upload-invoice" className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+              <Upload size={14}/> Upload Invoice
             </Link>
           </div>
         </header>
 
         <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
 
-          {/* chips */}
-          <div className="mb-5 flex flex-wrap gap-2">
-            {chips.map(({label,val,cls})=>(
-              <span key={label} className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${cls}`}>
-                {val} {label}
-              </span>
+          {/* stat cards */}
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label:"Total",     val:invoices.length,                                                                              color:"text-slate-900",    bg:"bg-white" },
+              { label:"Ready",     val:invoices.filter(i=>i.status==="ANALYSIS_READY").length,                                       color:"text-indigo-600",   bg:"bg-white" },
+              { label:"High Risk", val:Object.values(fraudMap).filter(f=>f?.risk_level==="HIGH"||f?.risk_level==="CRITICAL").length, color:"text-rose-600",     bg:"bg-white" },
+              { label:"Decided",   val:invoices.filter(i=>i.status==="DECIDED").length,                                              color:"text-emerald-600",  bg:"bg-white" },
+            ].map(({label,val,color,bg})=>(
+              <div key={label} className={`rounded-2xl border border-slate-200 ${bg} p-4 shadow-sm`}>
+                <p className="text-xs text-slate-400">{label}</p>
+                <p className={`mt-1 text-2xl font-bold ${color}`}>{loading?"…":val}</p>
+              </div>
             ))}
           </div>
 
@@ -172,11 +182,12 @@ export default function Invoices() {
                       </Link>
                     </td></tr>
                   )}
-                  {!loading&&!error&&visible.map(inv=>{
+                  {!loading&&!error&&visible.map((inv, idx)=>{
                     const fraud = fraudMap[inv.id];
+                    const displayNum = visible.length - idx; // newest = highest number
                     return (
                       <tr key={inv.id} className="transition hover:bg-indigo-50/30">
-                        <td className="px-5 py-3.5 text-xs font-bold text-slate-400">#{inv.id}</td>
+                        <td className="px-5 py-3.5 text-xs font-bold text-slate-400">#{displayNum}</td>
                         <td className="px-5 py-3.5 text-xs font-medium text-slate-700">{inv.invoice_number||<span className="text-slate-300">—</span>}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor?.name||<span className="text-slate-300">Unknown</span>}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-500">{fmt(inv.invoice_date)}</td>

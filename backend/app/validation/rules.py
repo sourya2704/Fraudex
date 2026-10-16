@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, List, Optional
 
-_AMOUNT_TOLERANCE = Decimal("0.05")
+_AMOUNT_TOLERANCE = Decimal("2.00")  # ₹2 tolerance for rounding (handles CGST+SGST split invoices)
 
 _REQUIRED_FIELDS = [
     "invoice_number",

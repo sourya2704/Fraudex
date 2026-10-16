@@ -38,8 +38,8 @@ class FraudConfig:
     ROUND_NUMBER_DETECTION = True  # Flag suspiciously round amounts
 
     # Tax Validation
-    VALID_GST_RATES = [0.00, 0.05, 0.12, 0.18, 0.28]  # Valid GST rates for India
-    TAX_CALCULATION_TOLERANCE = Decimal("0.05")  # ₹0.05 tolerance for tax calc
+    VALID_GST_RATES = [0.00, 0.025, 0.05, 0.06, 0.09, 0.12, 0.14, 0.18, 0.28]  # Valid GST rates incl. CGST/SGST splits
+    TAX_CALCULATION_TOLERANCE = Decimal("2.00")  # ₹2 tolerance for rounding differences
 
     # Date Validation
     MAX_INVOICE_AGE_DAYS = 730  # 2 years

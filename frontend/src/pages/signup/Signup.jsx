@@ -94,8 +94,8 @@ export default function Signup() {
       {/* ── LEFT HERO ──────────────────────────────────────────────────── */}
       <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
         <div className="pointer-events-none absolute inset-0">
-          
-          
+          <div className="absolute -top-40 -right-20 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl"/>
+          <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-indigo-600/15 blur-3xl"/>
           <div className="absolute inset-0 opacity-[0.04]"
             style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
         </div>

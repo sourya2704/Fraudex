@@ -8,6 +8,7 @@
   Clock,
   FileSearch,
   FileText,
+  Pencil,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -215,49 +216,94 @@ function Timeline({ logs }) {
 
 /* ── Review form ──────────────────────────────────────────────────────────── */
 function ReviewForm({ invoiceId, existingReview, onReviewed }) {
-  const [decision,    setDecision]    = useState(existingReview?.decision||"");
-  const [reason,      setReason]      = useState(existingReview?.reason||"");
+  const [editing,     setEditing]     = useState(!existingReview);  // if no review yet, start in edit mode
+  const [decision,    setDecision]    = useState(existingReview?.decision || "");
+  const [reason,      setReason]      = useState(existingReview?.reason   || "");
   const [submitting,  setSubmitting]  = useState(false);
   const [error,       setError]       = useState("");
-  const [success,     setSuccess]     = useState(false);
+
+  // sync when existingReview changes (after submit)
+  function startEdit() {
+    setDecision(existingReview?.decision || "");
+    setReason(existingReview?.reason     || "");
+    setError("");
+    setEditing(true);
+  }
 
   async function submit(e) {
     e.preventDefault();
-    if (!decision||!reason.trim()) { setError("Both decision and reason are required."); return; }
+    if (!decision || !reason.trim()) { setError("Both decision and reason are required."); return; }
     setError(""); setSubmitting(true);
     try {
       await apiClient.post(`/invoices/${invoiceId}/review`, { decision, reason });
-      setSuccess(true); onReviewed();
-    } catch(err) { setError(err.response?.data?.detail||"Failed to submit review"); }
+      setEditing(false);
+      onReviewed();
+    } catch(err) { setError(err.response?.data?.detail || "Failed to submit review"); }
     finally { setSubmitting(false); }
   }
 
-  if (success) return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-      <CheckCircle2 size={16}/> Review submitted successfully
-    </div>
-  );
+  const DECISION_STYLE = {
+    APPROVE:                { label:"Approved",              bg:"bg-emerald-50", text:"text-emerald-700", border:"border-emerald-200", badge:"bg-emerald-500" },
+    REJECT:                 { label:"Rejected",              bg:"bg-rose-50",    text:"text-rose-700",    border:"border-rose-200",    badge:"bg-rose-500"    },
+    REQUEST_FURTHER_REVIEW: { label:"Further Review Needed", bg:"bg-amber-50",   text:"text-amber-700",  border:"border-amber-200",   badge:"bg-amber-500"   },
+  };
 
   const decisions = [
-    { v:"APPROVE",                l:"Approve",              idle:"border-emerald-200 bg-emerald-50 text-emerald-700",  active:"border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" },
-    { v:"REJECT",                 l:"Reject",               idle:"border-rose-200 bg-rose-50 text-rose-700",           active:"border-rose-500 bg-rose-500 text-white shadow-lg shadow-rose-500/25" },
-    { v:"REQUEST_FURTHER_REVIEW", l:"Request Further Review",idle:"border-amber-200 bg-amber-50 text-amber-700",       active:"border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/25" },
+    { v:"APPROVE",                l:"Approve",               idle:"border-emerald-200 bg-emerald-50 text-emerald-700",  active:"border-emerald-500 bg-emerald-500 text-white" },
+    { v:"REJECT",                 l:"Reject",                idle:"border-rose-200 bg-rose-50 text-rose-700",           active:"border-rose-500 bg-rose-500 text-white"       },
+    { v:"REQUEST_FURTHER_REVIEW", l:"Request Further Review",idle:"border-amber-200 bg-amber-50 text-amber-700",        active:"border-amber-500 bg-amber-500 text-white"     },
   ];
 
+  // ── Submitted view (not editing) ────────────────────────────────────────
+  if (existingReview && !editing) {
+    const ds = DECISION_STYLE[existingReview.decision] || DECISION_STYLE.APPROVE;
+    return (
+      <div className={`rounded-xl border ${ds.border} ${ds.bg} p-4`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className={`rounded-full ${ds.badge} px-3 py-0.5 text-[11px] font-bold text-white tracking-wide`}>
+              {ds.label}
+            </span>
+            <span className="text-xs text-slate-400">
+              {new Date(existingReview.reviewed_at).toLocaleString("en-IN", {
+                day:"2-digit", month:"short", year:"numeric",
+                hour:"2-digit", minute:"2-digit"
+              })}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition"
+          >
+            <Pencil size={11}/> Edit
+          </button>
+        </div>
+        <p className={`mt-2 text-sm font-medium ${ds.text}`}>"{existingReview.reason}"</p>
+      </div>
+    );
+  }
+
+  // ── Edit / Submit form ───────────────────────────────────────────────────
   return (
     <form onSubmit={submit} className="space-y-4">
       {existingReview && (
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs text-indigo-700">
-          <strong>Previous:</strong> {existingReview.decision} — "{existingReview.reason}"
-          <p className="mt-0.5 text-indigo-400">Submitting again will overwrite this.</p>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+          <p className="text-xs text-slate-500">
+            Editing previous: <strong>{existingReview.decision}</strong> — "{existingReview.reason}"
+          </p>
+          <button type="button" onClick={() => setEditing(false)}
+            className="text-xs text-slate-400 hover:text-slate-700 transition">
+            Cancel
+          </button>
         </div>
       )}
       <div>
         <p className="mb-2.5 text-xs font-semibold text-slate-600">Decision *</p>
         <div className="flex flex-wrap gap-2">
-          {decisions.map(d=>(
-            <button key={d.v} type="button" onClick={()=>setDecision(d.v)}
-              className={`rounded-xl border px-4 py-2 text-xs font-semibold transition-all ${decision===d.v?d.active:d.idle}`}>
+          {decisions.map(d => (
+            <button key={d.v} type="button" onClick={() => setDecision(d.v)}
+              className={`rounded-xl border px-4 py-2 text-xs font-semibold transition-all ${decision === d.v ? d.active : d.idle}`}>
               {d.l}
             </button>
           ))}
@@ -270,13 +316,13 @@ function ReviewForm({ invoiceId, existingReview, onReviewed }) {
         <textarea id="rev-reason" rows={3}
           className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-300 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
           placeholder="Explain your decision…"
-          value={reason} onChange={e=>setReason(e.target.value)}/>
+          value={reason} onChange={e => setReason(e.target.value)} />
       </div>
       {error && <p className="text-xs text-rose-600">{error}</p>}
-      <button type="submit" disabled={submitting||!decision||!reason.trim()}
+      <button type="submit" disabled={submitting || !decision || !reason.trim()}
         className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
         <ShieldCheck size={15}/>
-        {submitting?"Submitting…":"Submit Review"}
+        {submitting ? "Submitting…" : existingReview ? "Update Review" : "Submit Review"}
       </button>
     </form>
   );
@@ -327,17 +373,18 @@ export default function InvoiceDetail() {
   useEffect(()=>{ loadAll(); },[invoiceId]);
 
   async function runExtract() {
-    setRunExtract(true);
+    setRunningExtract(true);
     try { await apiClient.post(`/invoices/${invoiceId}/extract`); await loadAll(); }
-    finally { setRunExtract(false); }
+    finally { setRunningExtract(false); }
   }
+
   async function runFraudCheck() {
-    setRunFraud(true);
+    setRunningFraud(true);
     try {
       const r = await apiClient.post(`/invoices/${invoiceId}/detect-fraud`); setFraud(r.data);
       const v = await apiClient.post(`/invoices/${invoiceId}/validate`); setValidation(v.data.validation);
       const a = await apiClient.get(`/audit/${invoiceId}`); setAudit(a.data);
-    } finally { setRunFraud(false); }
+    } finally { setRunningFraud(false); }
   }
 
   async function runAIAnalysis() {
@@ -504,8 +551,16 @@ export default function InvoiceDetail() {
                   <div className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-50 text-slate-300"><ShieldAlert size={26}/></div>
                   <p className="text-xs text-slate-400">Not analyzed yet</p>
                   <button onClick={runFraudCheck} disabled={runningFraud} type="button"
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
-                    {runningFraud?"Running…":"Run Fraud Check"}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition">
+                    {runningFraud ? (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        Running…
+                      </span>
+                    ) : "Run Fraud Check"}
                   </button>
                 </div>
               )}
@@ -546,15 +601,22 @@ export default function InvoiceDetail() {
                   LangGraph · 7 Agents
                 </span>
               </h2>
-              <button
-                onClick={runAIAnalysis}
-                disabled={runningAI}
-                type="button"
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-60"
-              >
-                
-                {runningAI ? "Analyzing… (may take 30s)" : aiAnalysis ? "Re-run AI Analysis" : "Run AI Analysis"}
-              </button>
+              <div className="flex items-center gap-2">
+                {!fraud && (
+                  <button onClick={runFraudCheck} disabled={runningFraud} type="button"
+                    className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 disabled:opacity-50 transition">
+                    {runningFraud ? "Running…" : "① Run Fraud Check First"}
+                  </button>
+                )}
+                <button
+                  onClick={runAIAnalysis}
+                  disabled={runningAI}
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 disabled:opacity-60"
+                >
+                  {runningAI ? "Analyzing… (may take 30s)" : aiAnalysis ? "Re-run AI Analysis" : "② Run AI Analysis"}
+                </button>
+              </div>
             </div>
 
             {runningAI && (
@@ -661,19 +723,7 @@ export default function InvoiceDetail() {
                 <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-50 text-emerald-600"><User size={14}/></div>
                 Human Review
               </h2>
-              {review && (
-                <div className={`mb-4 rounded-xl border px-4 py-3 ${review.decision==="APPROVE"?"border-emerald-200 bg-emerald-50":review.decision==="REJECT"?"border-rose-200 bg-rose-50":"border-amber-200 bg-amber-50"}`}>
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white ${review.decision==="APPROVE"?"bg-emerald-500":review.decision==="REJECT"?"bg-rose-500":"bg-amber-400"}`}>
-                      {review.decision}
-                    </span>
-                    <span className="text-slate-400">{fmtTs(review.reviewed_at)}</span>
-                  </div>
-                  <p className="mt-2 text-xs italic text-slate-600">"{review.reason}"</p>
-                </div>
-              )}
-              <ReviewForm invoiceId={invoiceId} existingReview={review} onReviewed={loadAll}/>
-            </section>
+              <ReviewForm invoiceId={invoiceId} existingReview={review} onReviewed={loadAll}/>            </section>
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <div className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-50 text-indigo-600"><Activity size={14}/></div>

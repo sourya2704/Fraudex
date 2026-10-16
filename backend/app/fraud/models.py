@@ -25,13 +25,22 @@ class RiskLevel:
     CRITICAL = "CRITICAL"
 
 
-# Severity score weights for risk calculation
+# Severity base scores — what each flag TYPE contributes max
 SEVERITY_WEIGHTS = {
-    Severity.INFO: 5,
-    Severity.LOW: 15,
-    Severity.MEDIUM: 35,
-    Severity.HIGH: 60,
-    Severity.CRITICAL: 100,
+    Severity.INFO:     2,
+    Severity.LOW:      8,
+    Severity.MEDIUM:   18,
+    Severity.HIGH:     30,
+    Severity.CRITICAL: 55,
+}
+
+# Max total score caps per severity bucket (prevents 2 HIGH flags = 100)
+SEVERITY_MAX_CONTRIBUTION = {
+    Severity.INFO:     5,
+    Severity.LOW:      15,
+    Severity.MEDIUM:   30,
+    Severity.HIGH:     45,
+    Severity.CRITICAL: 70,
 }
 
 
@@ -80,41 +89,46 @@ class FraudDetectionResult:
 
     def calculate_risk_score(self) -> float:
         """
-        Calculate overall risk score (0-100) based on fraud flags.
-        
-        Uses weighted scoring where severity determines weight.
-        Multiple flags of same severity contribute with diminishing returns.
+        Calculate overall risk score (0-100).
+
+        Design goals:
+        - A single UNKNOWN_VENDOR (expected in new invoices) should NOT push
+          score above LOW/MEDIUM.
+        - A TAX_CALCULATION_MISMATCH alone → MEDIUM range (~20-30).
+        - Real fraud signals (DUPLICATE, AMOUNT_SPIKE) → HIGH/CRITICAL.
+        - Multiple critical flags needed to reach 75+.
+
+        Formula: per-severity contribution is capped so no single bucket
+        can dominate the score.
         """
         if not self.flags:
             return 0.0
 
         # Count flags by severity
-        severity_counts = {
+        severity_counts: dict[str, int] = {
             Severity.INFO: 0,
             Severity.LOW: 0,
             Severity.MEDIUM: 0,
             Severity.HIGH: 0,
             Severity.CRITICAL: 0,
         }
-
         for flag in self.flags:
-            severity = flag.severity
-            if severity in severity_counts:
-                severity_counts[severity] += 1
+            if flag.severity in severity_counts:
+                severity_counts[flag.severity] += 1
 
-        # Calculate score with diminishing returns
         total_score = 0.0
-
         for severity, count in severity_counts.items():
-            if count > 0:
-                base_weight = SEVERITY_WEIGHTS[severity]
-                # First flag gets full weight, subsequent ones get less
-                for i in range(count):
-                    multiplier = 1.0 / (i + 1) ** 0.5  # Diminishing returns
-                    total_score += base_weight * multiplier
+            if count == 0:
+                continue
+            base = SEVERITY_WEIGHTS[severity]
+            cap  = SEVERITY_MAX_CONTRIBUTION[severity]
+            # Each additional flag of same type adds half the previous contribution
+            bucket_score = 0.0
+            for i in range(count):
+                bucket_score += base * (0.5 ** i)
+            total_score += min(bucket_score, cap)
 
-        # Cap at 100
-        return min(total_score, 100.0)
+        return round(min(total_score, 100.0), 2)
 
     def classify_risk_level(self, score: float) -> str:
         """

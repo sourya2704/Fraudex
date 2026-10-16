@@ -1,10 +1,11 @@
-﻿import { Bell, Camera, Lock, Moon, Save, ShieldCheck, Sun, Trash2 } from "lucide-react";
+﻿import { Camera, Lock, Moon, Save, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import apiClient from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { useAvatar } from "../../../context/AvatarContext";
 import { useTheme } from "../../../context/ThemeContext";
 import Sidebar from "../../Sidebar/Sidebar";
+import NotificationBell from "../../../components/NotificationBell";
 
 const ROLE_META = {
   ADMIN:           { label: "Admin",           cls: "bg-rose-50 text-rose-600 border-rose-200",       dot: "bg-rose-500",   solidBg: "bg-rose-500"   },
@@ -139,10 +140,11 @@ export default function Settings() {
 
         {/* header */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">Settings</h1>
-          <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700">
-            <Bell size={15} />
-          </button>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Account</p>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900">Settings</h1>
+          </div>
+          <NotificationBell />
         </header>
 
         <div className="mx-auto max-w-2xl space-y-4 px-5 py-8 sm:px-8">
@@ -344,10 +346,10 @@ export default function Settings() {
               {/* sms alerts */}
               <div className="flex items-center justify-between py-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-800">SMS Fraud Alerts</p>
-                  <p className="text-xs text-slate-400">Get notified for high-risk invoices</p>
+                  <p className="text-sm font-medium text-slate-800">In-App Fraud Alerts</p>
+                  <p className="text-xs text-slate-400">Get notified for high-risk invoices in dashboard</p>
                 </div>
-                <Toggle on={sms} onToggle={() => setSms(s => !s)} label="SMS alerts" />
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">Always on</span>
               </div>
 
             </div>

@@ -1,8 +1,9 @@
-﻿import { Bell, CheckCircle2, FileText, Search, UploadCloud, X, Zap } from "lucide-react";
+﻿import { CheckCircle2, FileText, Upload as UploadIcon, UploadCloud, X, Zap } from "lucide-react";
 import { useRef, useState } from "react";
 import Sidebar from "../../Sidebar/Sidebar";
 import InvoiceProcessing from "./InvoiceProcessing";
 import apiClient from "../../../api/client";
+import NotificationBell from "../../../components/NotificationBell";
 
 const STEPS = [
   { n:"1", title:"Upload File",        desc:"PDF or image invoice" },
@@ -17,6 +18,7 @@ export default function UploadInvoice() {
   const [error,      setError]      = useState("");
   const [screen,     setScreen]     = useState("upload");
   const [uploading,  setUploading]  = useState(false);
+  const [uploadStep, setUploadStep] = useState(""); // current step message
   const [invoice,    setInvoice]    = useState(null);
   const [validation, setValidation] = useState(null);
   const [dragOver,   setDragOver]   = useState(false);
@@ -35,14 +37,17 @@ export default function UploadInvoice() {
     if (!file||uploading) return;
     setError(""); setUploading(true);
     try {
+      setUploadStep("Uploading file…");
       const fd = new FormData(); fd.append("file", file);
       const { data: inv } = await apiClient.post("/invoices/upload", fd, { headers:{"Content-Type":"multipart/form-data"} });
+      setUploadStep("Extracting text from invoice…");
       const { data: extracted } = await apiClient.post(`/invoices/${inv.id}/extract`);
+      setUploadStep("Validating fields…");
       const { data: val }       = await apiClient.post(`/invoices/${inv.id}/validate`);
       setInvoice(extracted); setValidation(val); setScreen("processing");
     } catch(e) {
       setError(e.response?.data?.detail||"Upload failed. Check your connection and try again.");
-    } finally { setUploading(false); }
+    } finally { setUploading(false); setUploadStep(""); }
   }
 
   if (screen==="processing") return (
@@ -60,10 +65,7 @@ export default function UploadInvoice() {
             <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">Invoice workspace</p>
             <h1 className="text-lg font-bold tracking-tight text-slate-900">Upload Invoice</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Search size={15}/></button>
-            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700"><Bell size={15}/></button>
-          </div>
+          <NotificationBell />
         </header>
 
         <div className="mx-auto max-w-3xl space-y-5 px-5 py-7 sm:px-8">
@@ -154,20 +156,32 @@ export default function UploadInvoice() {
           </div>
 
           {/* Analyze button */}
-          <div className="flex justify-end">
-            <button onClick={analyze} disabled={!file||uploading} type="button"
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition enabled:hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
-              <CheckCircle2 size={16}/>
-              {uploading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  Analyzing…
-                </span>
-              ) : "Analyze Invoice"}
-            </button>
+          <div className="flex items-center justify-between">
+            {uploading && uploadStep && (
+              <p className="flex items-center gap-2 text-xs text-indigo-600 font-medium">
+                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                {uploadStep}
+              </p>
+            )}
+            <div className="ml-auto">
+              <button onClick={analyze} disabled={!file||uploading} type="button"
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition enabled:hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm shadow-indigo-500/25">
+                {uploading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Analyzing…
+                  </span>
+                ) : (
+                  <><CheckCircle2 size={16}/> Analyze Invoice</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

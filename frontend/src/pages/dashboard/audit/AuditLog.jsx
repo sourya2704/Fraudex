@@ -1,10 +1,11 @@
 ﻿import {
-  Activity, Bell, CheckCircle, ChevronDown, Clock,
-  FileSearch, FileUp, Search, ShieldAlert, User, XCircle,
+  Activity, CheckCircle, ChevronDown, Clock,
+  FileSearch, FileUp, RefreshCw, Search, ShieldAlert, User, XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Sidebar from "../../Sidebar/Sidebar";
 import apiClient from "../../../api/client";
+import NotificationBell from "../../../components/NotificationBell";
 
 /* ── meta ─────────────────────────────────────────────────────────────────── */
 const META = {
@@ -217,14 +218,14 @@ export default function AuditLog() {
       <div className="min-w-0 flex-1">
 
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 sm:px-8">
-          <div className="flex items-center gap-2">
-            <div className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-50 text-indigo-600"><Activity size={14}/></div>
-            <h1 className="text-lg font-bold tracking-tight text-slate-900">Audit Log</h1>
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><Activity size={15}/></div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-500">System</p>
+              <h1 className="text-lg font-bold tracking-tight text-slate-900 leading-none">Audit Log</h1>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-slate-400">
-            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white hover:text-slate-700"><Search size={15}/></button>
-            <button type="button" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white hover:text-slate-700"><Bell size={15}/></button>
-          </div>
+          <NotificationBell />
         </header>
 
         <div className="mx-auto max-w-5xl space-y-5 px-5 py-7 sm:px-8">

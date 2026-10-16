@@ -267,46 +267,40 @@ def get_fraud_trends(
     current_user: User = Depends(get_current_user),
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
 ):
-    """
-    Get fraud detection trends over time.
-    
-    Returns daily counts of fraud detections by risk level.
-    """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    end_date = datetime.now()
+    end_date   = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
 
-    # Get fraud results within date range
     results = db.query(FraudDetectionResult).filter(
         FraudDetectionResult.detection_timestamp >= start_date,
         FraudDetectionResult.detection_timestamp <= end_date,
     ).all()
 
-    # Group by date and risk level
-    trends = {}
+    # Build a dict keyed by date string
+    trends_map: dict = {}
     for result in results:
         date_key = result.detection_timestamp.date().isoformat()
-        if date_key not in trends:
-            trends[date_key] = {
-                "date": date_key,
-                "LOW": 0,
-                "MEDIUM": 0,
-                "HIGH": 0,
-                "CRITICAL": 0,
-                "total": 0,
-            }
-        trends[date_key][result.risk_level] += 1
-        trends[date_key]["total"] += 1
+        if date_key not in trends_map:
+            trends_map[date_key] = {"date": date_key, "LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0, "total": 0}
+        trends_map[date_key][result.risk_level] += 1
+        trends_map[date_key]["total"] += 1
 
-    # Sort by date
-    sorted_trends = sorted(trends.values(), key=lambda x: x["date"])
+    # Fill every day in the range with 0s if no data
+    all_trends = []
+    current = start_date.date()
+    while current <= end_date.date():
+        key = current.isoformat()
+        all_trends.append(trends_map.get(key, {
+            "date": key, "LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0, "total": 0
+        }))
+        current += timedelta(days=1)
 
     return {
         "period_days": days,
         "start_date": start_date.date().isoformat(),
         "end_date": end_date.date().isoformat(),
-        "trends": sorted_trends,
+        "trends": all_trends,
     }
 
 

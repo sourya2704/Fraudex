@@ -83,9 +83,18 @@ def validate_tax_calculation(invoice: Invoice) -> Optional[FraudFlag]:
     tolerance = FraudConfig.TAX_CALCULATION_TOLERANCE
 
     if abs(expected_total - actual_total) > tolerance:
+        # Determine severity based on difference size
+        diff = abs(expected_total - actual_total)
+        if diff <= 5:
+            sev = Severity.LOW      # small rounding difference
+        elif diff <= 50:
+            sev = Severity.MEDIUM
+        else:
+            sev = Severity.HIGH
+
         return FraudFlag(
             code="TAX_CALCULATION_MISMATCH",
-            severity=Severity.HIGH,
+            severity=sev,
             message=f"Tax calculation error: subtotal (₹{invoice.subtotal}) + "
                     f"tax (₹{invoice.tax}) = ₹{expected_total}, "
                     f"but total is ₹{actual_total}",

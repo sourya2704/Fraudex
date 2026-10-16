@@ -1,24 +1,44 @@
 from decimal import Decimal
 from typing import Any
-from langchain_ollama import ChatOllama
+import os
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.ai.state import FraudAnalysisState
 from app.models.invoice import Invoice
 from app.models.fraud_detection_result import FraudDetectionResult
-from app.rag.config import (
-    OLLAMA_BASE_URL, OLLAMA_LLM_MODEL,
-    AI_WEIGHT, DETERMINISTIC_WEIGHT,
-)
+from app.rag.config import AI_WEIGHT, DETERMINISTIC_WEIGHT
 from app.rag.store import RAGStore
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL     = "gemini-3-flash-preview"
+GEMINI_FALLBACKS = ["gemini-flash-latest", "gemini-pro-latest", "gemini-flash-lite-latest"]
 
-def _get_llm() -> ChatOllama:
-    return ChatOllama(
-        base_url=OLLAMA_BASE_URL,
-        model=OLLAMA_LLM_MODEL,
-        temperature=0.1,
-    )
+
+def _call_gemini(prompt: str) -> str:
+    """Call Gemini API with automatic model fallback on 503."""
+    from google import genai
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    models_to_try = [GEMINI_MODEL] + GEMINI_FALLBACKS
+    last_error = None
+
+    for model in models_to_try:
+        try:
+            response = client.models.generate_content(model=model, contents=prompt)
+            return response.text.strip()
+        except Exception as e:
+            err_str = str(e)
+            # Only retry on 503 or 429 (rate limit) — fail fast on auth/not found
+            if "503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str:
+                print(f"[GEMINI] model={model} unavailable, trying next...")
+                last_error = e
+                continue
+            raise  # re-raise other errors (404, auth, etc.)
+
+    raise last_error
 
 
 def _safe_float(v) -> float | None:
@@ -267,12 +287,11 @@ Consider:
 Respond with ONLY a number between 0 and 100. Nothing else."""
 
     try:
-        llm = _get_llm()
-        response = llm.invoke(prompt)
-        ai_score_raw = response.content.strip().split()[0]
+        ai_score_raw = _call_gemini(prompt).split()[0]
         ai_score = min(100.0, max(0.0, float(ai_score_raw)))
-    except Exception:
-        ai_score = det_score
+    except Exception as e:
+        print(f"[GEMINI ERROR in risk_assessor] {type(e).__name__}: {e}")
+        ai_score = det_score  # fallback to deterministic
 
     final_score = round(
         (det_score * DETERMINISTIC_WEIGHT) + (ai_score * AI_WEIGHT), 2
@@ -352,10 +371,9 @@ POLICY EVIDENCE:
 Write the analysis report now:"""
 
     try:
-        llm = _get_llm()
-        response = llm.invoke(prompt)
-        explanation = response.content.strip()
+        explanation = _call_gemini(prompt)
     except Exception as e:
+        print(f"[GEMINI ERROR in explanation_writer] {type(e).__name__}: {e}")
         explanation = (
             f"Automated analysis completed. Risk level: {risk_level} "
             f"(score: {final_score}/100). "
