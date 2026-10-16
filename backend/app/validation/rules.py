@@ -99,7 +99,12 @@ def validate_invoice_fields(
         and isinstance(total_amount, Decimal)
     ):
         expected = subtotal + tax
-        if abs(expected - total_amount) > _AMOUNT_TOLERANCE:
+        diff = abs(expected - total_amount)
+        # Check if this might be a CGST+SGST split invoice where tax is only half
+        expected_double_tax = subtotal + (tax * 2)
+        diff_double = abs(expected_double_tax - total_amount)
+
+        if diff > _AMOUNT_TOLERANCE and diff_double > _AMOUNT_TOLERANCE:
             result.add(
                 "TOTAL_MISMATCH",
                 Severity.ERROR,

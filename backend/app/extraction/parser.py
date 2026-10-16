@@ -1,3 +1,7 @@
+"""
+Deterministic parsing of raw invoice text into structured fields.
+"""
+
 import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -25,11 +29,18 @@ _SUBTOTAL_LABELS = [
     r"sub\s*-?\s*total",
     r"net\s*amount",
     r"amount\s*before\s*tax",
+    r"total\s*taxable\s*value",
+    r"taxable\s*value",
+    r"taxable\s*amount",
 ]
 _TAX_LABELS = [
-    r"gst",
-    r"vat",
+    r"total\s*(?:cgst|igst|sgst|utgst|cess)",
+    r"total\s*gst",
+    r"total\s*tax",
+    r"gst\s*amount",
     r"tax\s*amount",
+    r"vat",
+    r"gst",
     r"tax",
 ]
 _TOTAL_LABELS = [
@@ -37,10 +48,10 @@ _TOTAL_LABELS = [
     r"total\s*amount\s*due",
     r"total\s*payable",
     r"invoice\s*total",
-
+    r"total\s*invoice\s*value",
+    r"total\s*invoice\s*amount",
     r"(?<!sub)(?<!sub[\-\s])total",
 ]
-
 
 _CURRENCY_CODES = ["INR", "USD", "EUR", "GBP", "JPY", "AUD", "CAD"]
 _CURRENCY_SYMBOLS = {
@@ -50,8 +61,8 @@ _CURRENCY_SYMBOLS = {
     "£": "GBP",
     "Rs": "INR",
     "Rs.": "INR",
+    "#": "INR",   # some Indian invoice generators use # instead of ₹
 }
-
 
 _NUMBER_RE = r"[-+]?\d+(?:,\d+)*(?:\.\d+)?"
 
@@ -59,6 +70,8 @@ _DATE_FORMATS = [
     "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y",
     "%d.%m.%Y", "%Y/%m/%d", "%d %b %Y", "%d %B %Y",
     "%b %d, %Y", "%B %d, %Y",
+    "%d-%b-%Y", "%d-%B-%Y",    # 29-Jul-2026
+    "%d %b, %Y", "%d %B, %Y",  # 29 Jul, 2026
 ]
 
 
@@ -88,18 +101,28 @@ def _find_labeled_value(
     value_pattern: str,
     prefer_last: bool = False,
 ) -> Optional[str]:
+    """
+    Find value after a label — same line OR immediately next line.
+    """
     matches = []
     for label in labels:
-
-
-        junk = r"(?:[:\-=]|\([^)]*\)|[$₹€£]|Rs\.?|\s)*"
+        junk = r"(?:[:\-=]|\([^)]*\)|[$₹€£#]|Rs\.?|\s)*"
+        # Same line match
         pattern = rf"{label}{junk}({value_pattern})"
         for match in re.finditer(pattern, text, flags=re.IGNORECASE | re.MULTILINE):
+            matches.append(match.group(1).strip())
+        # Next line match — label alone on its line, value on next
+        pattern2 = rf"^[ \t]*{label}[ \t]*$\s*^[ \t]*({value_pattern})[ \t]*$"
+        for match in re.finditer(pattern2, text, flags=re.IGNORECASE | re.MULTILINE):
             matches.append(match.group(1).strip())
     return matches[-1] if prefer_last and matches else (matches[0] if matches else None)
 
 
 def parse_invoice_text(raw_text: str) -> dict:
+    """
+    Parse raw invoice text into structured fields.
+    Returns dict with fields, found, missing.
+    """
     text = raw_text or ""
 
     invoice_number = _find_labeled_value(
@@ -116,14 +139,31 @@ def parse_invoice_text(raw_text: str) -> dict:
     subtotal_raw = _find_labeled_value(
         text, _SUBTOTAL_LABELS, _NUMBER_RE, prefer_last=True
     )
-    tax_raw = _find_labeled_value(
-        text, _TAX_LABELS, _NUMBER_RE, prefer_last=True
-    )
+
+    # Tax: detect CGST + SGST separately and sum (Indian GST split)
+    cgst_raw = _find_labeled_value(text, [r"total\s*cgst", r"cgst"], _NUMBER_RE, prefer_last=True)
+    sgst_raw = _find_labeled_value(text, [r"total\s*sgst", r"total\s*utgst", r"sgst", r"utgst"], _NUMBER_RE, prefer_last=True)
+    igst_raw = _find_labeled_value(text, [r"total\s*igst", r"igst"], _NUMBER_RE, prefer_last=True)
+
+    cgst_val = _to_decimal(cgst_raw)
+    sgst_val = _to_decimal(sgst_raw)
+    igst_val = _to_decimal(igst_raw)
+
+    if cgst_val is not None and sgst_val is not None:
+        tax_decimal = cgst_val + sgst_val
+        tax_raw = None
+    elif igst_val is not None:
+        tax_decimal = igst_val
+        tax_raw = None
+    else:
+        tax_raw = _find_labeled_value(text, _TAX_LABELS, _NUMBER_RE, prefer_last=True)
+        tax_decimal = None
+
     total_raw = _find_labeled_value(
         text, _TOTAL_LABELS, _NUMBER_RE, prefer_last=True
     )
 
-
+    # Currency: explicit code, then symbol
     currency = _find_labeled_value(text, [r"currency"], r"[A-Za-z]{3}")
     if currency:
         currency = currency.upper()
@@ -143,88 +183,12 @@ def parse_invoice_text(raw_text: str) -> dict:
         "invoice_date": _to_date(invoice_date_raw) if invoice_date_raw else None,
         "due_date": _to_date(due_date_raw) if due_date_raw else None,
         "subtotal": _to_decimal(subtotal_raw),
-        "tax": _to_decimal(tax_raw),
+        "tax": tax_decimal if tax_decimal is not None else _to_decimal(tax_raw),
         "total_amount": _to_decimal(total_raw),
         "currency": currency,
     }
 
-    found = [k for k, v in fields.items() if v is not None]
+    found   = [k for k, v in fields.items() if v is not None]
     missing = [k for k, v in fields.items() if v is None]
 
-    return {
-        "fields": fields,
-        "found": found,
-        "missing": missing,
-        "line_items": parse_line_items(text),
-    }
-
-
-_SUMMARY_KEYWORDS = (
-    "subtotal", "sub-total", "sub total", "total", "tax", "gst", "vat",
-    "grand", "amount due", "balance", "discount", "shipping",
-)
-
-_METADATA_KEYWORDS = (
-    "invoice", "date", "due", "number", "bill", "currency", "vendor",
-    "customer", "phone", "email", "address", "gstin", "pan", "order",
-)
-
-_LINE_TOTAL_MIN_NUMBERS = 2
-
-
-def parse_line_items(raw_text: str) -> list:
-    """
-    Extract line items from invoice text.
-
-    A line item is a row that ends in numeric columns. We interpret the
-    trailing numbers as (unit_price, line_total) when two are present, or
-    (line_total) when one is present, with an optional leading quantity.
-    Header rows and summary rows (Subtotal/Tax/Total) are skipped.
-
-    Returns a list of dicts: description, quantity, unit_price, line_total.
-    Fields that cannot be read are None. This is deterministic and best-effort.
-    """
-    items = []
-    for line in (raw_text or "").splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-
-        lower = stripped.lower()
-        if any(kw in lower for kw in _SUMMARY_KEYWORDS):
-            continue
-        if any(kw in lower for kw in _METADATA_KEYWORDS):
-            continue
-
-        # Skip labeled metadata lines ("Something: value").
-        if ":" in stripped:
-            continue
-
-        # A real item row has 2+ POSITIVE numbers (money/qty are never
-        # negative). This also excludes date fragments like "-2026" that the
-        # number regex would otherwise capture.
-        raw_numbers = re.findall(_NUMBER_RE, stripped)
-        decimals = [_to_decimal(n) for n in raw_numbers]
-        decimals = [d for d in decimals if d is not None and d >= 0]
-        if len(decimals) < _LINE_TOTAL_MIN_NUMBERS:
-            continue
-
-        description = re.split(_NUMBER_RE, stripped)[0].strip(" \t:-|")
-        if not description:
-            continue
-
-        quantity = unit_price = line_total = None
-
-        if len(decimals) >= 3:
-            quantity, unit_price, line_total = decimals[0], decimals[-2], decimals[-1]
-        elif len(decimals) == 2:
-            unit_price, line_total = decimals[0], decimals[1]
-
-        items.append({
-            "description": description,
-            "quantity": quantity,
-            "unit_price": unit_price,
-            "line_total": line_total,
-        })
-
-    return items
+    return {"fields": fields, "found": found, "missing": missing}
