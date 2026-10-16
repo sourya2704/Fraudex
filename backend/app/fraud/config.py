@@ -20,18 +20,20 @@ class FraudConfig:
     )  # 7 days window
 
     # Anomaly Detection
+    # 3.0 standard deviations is the standard statistical threshold for genuine
+    # outliers. 2.0 flagged ~5% of completely normal data.
     ANOMALY_STD_DEV_MULTIPLIER = float(
-        os.getenv("FRAUD_ANOMALY_STD_DEV_MULTIPLIER", "2.0")
-    )  # 2 standard deviations
+        os.getenv("FRAUD_ANOMALY_STD_DEV_MULTIPLIER", "3.0")
+    )
     MIN_VENDOR_HISTORY = int(
         os.getenv("FRAUD_MIN_VENDOR_HISTORY", "5")
-    )  # Minimum invoices for reliable stats
+    )
 
     # Vendor Risk Thresholds
     HIGH_REJECTION_RATE_THRESHOLD = float(
         os.getenv("FRAUD_HIGH_REJECTION_RATE_THRESHOLD", "0.30")
     )  # 30% rejection rate
-    NEW_VENDOR_INVOICE_THRESHOLD = 3  # < 3 invoices = new vendor
+    NEW_VENDOR_INVOICE_THRESHOLD = 1  # 0 invoices = truly new vendor
 
     # Amount Thresholds
     HIGH_VALUE_THRESHOLD = Decimal("10000.00")  # High value invoice

@@ -33,23 +33,24 @@ def validate_gst_rate(invoice: Invoice) -> Optional[FraudFlag]:
     # Check against valid GST rates
     valid_rates = FraudConfig.VALID_GST_RATES
     
-    # Allow small tolerance for rounding
-    tolerance = 0.005  # 0.5%
-    
+    # Allow 1.5% tolerance — many invoices have composite rates or
+    # mixed-rate line items that don't land exactly on standard slabs.
+    tolerance = 0.015
+
     is_valid = any(
         abs(tax_rate - valid_rate) < tolerance
         for valid_rate in valid_rates
     )
 
     if not is_valid:
-        # Find closest valid rate for reference
         closest_rate = min(valid_rates, key=lambda x: abs(x - tax_rate))
-        
         return FraudFlag(
             code="INVALID_GST_RATE",
-            severity=Severity.HIGH,
-            message=f"Tax rate ({tax_rate * 100:.2f}%) does not match standard GST rates. "
-                    f"Closest valid rate: {closest_rate * 100:.0f}%",
+            severity=Severity.MEDIUM,
+            message=(
+                f"Tax rate ({tax_rate * 100:.2f}%) does not match standard GST rates. "
+                f"Closest valid rate: {closest_rate * 100:.0f}%"
+            ),
             evidence={
                 "calculated_tax_rate": round(tax_rate * 100, 2),
                 "valid_gst_rates": [r * 100 for r in valid_rates],
@@ -132,31 +133,8 @@ def validate_tax_calculation(invoice: Invoice) -> Optional[FraudFlag]:
 
 
 def check_missing_tax(invoice: Invoice) -> Optional[FraudFlag]:
-    """
-    Check for missing tax on high-value invoices.
-    
-    Args:
-        invoice: Invoice to check
-        
-    Returns:
-        FraudFlag if tax is missing on high-value invoice, None otherwise
-    """
-    # Check if total amount is significant but tax is zero or missing
-    if invoice.total_amount and invoice.total_amount > FraudConfig.HIGH_VALUE_THRESHOLD:
-        if not invoice.tax or invoice.tax == 0:
-            return FraudFlag(
-                code="MISSING_TAX_HIGH_VALUE",
-                severity=Severity.HIGH,
-                message=f"High-value invoice (₹{invoice.total_amount}) "
-                        f"has no tax applied",
-                evidence={
-                    "total_amount": str(invoice.total_amount),
-                    "tax": str(invoice.tax) if invoice.tax else "0",
-                    "threshold": str(FraudConfig.HIGH_VALUE_THRESHOLD),
-                },
-                field_name="tax",
-            )
-
+    # 0% GST is legal for many categories (exports, exempt goods, small vendors).
+    # Flagging zero-tax invoices was a constant false positive.
     return None
 
 

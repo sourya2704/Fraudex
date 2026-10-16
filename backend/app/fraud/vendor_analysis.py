@@ -113,19 +113,17 @@ def analyze_vendor_risk(db: Session, invoice: Invoice) -> List[FraudFlag]:
     # Get vendor statistics
     stats = _get_vendor_invoice_stats(db, invoice.vendor_id)
 
-    # Check for new vendor
-    if stats["is_new_vendor"]:
+    # Only flag as new vendor if there are ZERO prior invoices.
+    # Having 1-2 prior invoices is not suspicious — every vendor starts somewhere.
+    if stats["total_invoices"] == 0:
         severity = Severity.MEDIUM
-        
-        # Escalate severity if it's a high-value invoice from new vendor
         if invoice.total_amount and invoice.total_amount > FraudConfig.HIGH_VALUE_THRESHOLD:
             severity = Severity.HIGH
-            
         flags.append(
             FraudFlag(
                 code="NEW_VENDOR",
                 severity=severity,
-                message=f"New vendor with only {stats['total_invoices']} invoice(s) in system",
+                message="No previous invoices recorded for this vendor",
                 evidence={
                     "vendor_id": invoice.vendor_id,
                     "total_invoices": stats["total_invoices"],
@@ -213,15 +211,15 @@ def analyze_vendor_history(db: Session, invoice: Invoice) -> List[FraudFlag]:
     # Check for sudden spike (significantly higher than average)
     if mean_amount > 0:
         multiplier = current_amount / mean_amount
-        
-        # Flag if current amount is 3x or more of average
         if multiplier >= 3.0:
             flags.append(
                 FraudFlag(
                     code="VENDOR_AMOUNT_SPIKE",
                     severity=Severity.MEDIUM,
-                    message=f"Invoice amount is {multiplier:.1f}x higher than "
-                            f"vendor's average (₹{mean_amount:.2f})",
+                    message=(
+                        f"Invoice amount is {multiplier:.1f}x higher than "
+                        f"vendor's average ({mean_amount:.2f})"
+                    ),
                     evidence={
                         "vendor_id": invoice.vendor_id,
                         "current_amount": str(invoice.total_amount),
@@ -233,25 +231,8 @@ def analyze_vendor_history(db: Session, invoice: Invoice) -> List[FraudFlag]:
                 )
             )
 
-    # Check for consistently increasing amounts (potential escalation)
-    if len(amounts) >= 5:
-        # Check if amounts are generally increasing
-        sorted_amounts = sorted(amounts)
-        if amounts == sorted_amounts:
-            # All amounts are in increasing order
-            flags.append(
-                FraudFlag(
-                    code="VENDOR_ESCALATING_AMOUNTS",
-                    severity=Severity.LOW,
-                    message="Vendor's invoice amounts show consistent escalation pattern",
-                    evidence={
-                        "vendor_id": invoice.vendor_id,
-                        "historical_invoice_count": len(amounts),
-                        "pattern": "consistently_increasing",
-                    },
-                    field_name="total_amount",
-                )
-            )
+    # VENDOR_ESCALATING_AMOUNTS removed — consistently increasing amounts
+    # simply reflect normal business growth and caused constant false positives.
 
     return flags
 

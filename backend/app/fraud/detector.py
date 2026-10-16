@@ -46,9 +46,7 @@ class FraudDetector:
         from app.fraud.vendor_analysis import analyze_vendor_risk, analyze_vendor_history
         from app.fraud.anomaly import (
             detect_amount_anomaly,
-            detect_round_number,
             detect_rapid_submission,
-            detect_sequential_amounts,
             detect_amount_just_below_threshold,
         )
         from app.fraud.tax_validation import (
@@ -62,9 +60,7 @@ class FraudDetector:
             check_future_date,
             check_very_old_invoice,
             check_due_date_anomaly,
-            check_weekend_invoice,
             check_back_dated_invoice,
-            check_suspicious_date_pattern,
         )
 
         # Run all checks and collect flags
@@ -79,9 +75,7 @@ class FraudDetector:
             
             # Anomaly detection
             lambda: detect_amount_anomaly(self.db, invoice),
-            lambda: detect_round_number(invoice),
             lambda: detect_rapid_submission(self.db, invoice),
-            lambda: detect_sequential_amounts(self.db, invoice),
             lambda: detect_amount_just_below_threshold(invoice),
             
             # Tax validation
@@ -95,9 +89,7 @@ class FraudDetector:
             lambda: check_future_date(invoice),
             lambda: check_very_old_invoice(invoice),
             lambda: check_due_date_anomaly(invoice),
-            lambda: check_weekend_invoice(invoice),
             lambda: check_back_dated_invoice(invoice),
-            lambda: check_suspicious_date_pattern(invoice),
         ]
 
         for check in checks:
