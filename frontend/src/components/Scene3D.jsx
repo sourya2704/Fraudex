@@ -55,6 +55,11 @@ function buildScene(THREE, variant, colors) {
   scene.add(glow);
 
   if (variant === "hero") {
+    // The scene spans the whole auth page: sit just right of centre, in the
+    // gap between the hero copy and the sign-in card.
+    group.position.x = 0.45;
+    group.position.y = -0.1;
+
     // Faceted crystal + glowing edges
     const geo = new THREE.IcosahedronGeometry(1.25, 1);
     const crystal = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({

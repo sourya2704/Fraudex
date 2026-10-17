@@ -51,9 +51,7 @@ function Steps({ current }) {
       re-created on every keystroke ──────────────────────────────────── */
 function Hero() {
   return (
-  <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden bg-[#0b0b08] p-12 lg:flex">
-    <Scene3D variant="hero" className="absolute inset-0 opacity-70" />
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_30%_70%,transparent,rgba(11,11,8,0.8))]" />
+  <div className="relative z-10 hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
     <div className="relative flex items-center gap-3">
       <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">
         <ShieldCheck size={20} strokeWidth={2.2}/>
@@ -145,12 +143,15 @@ export default function ForgotPassword() {
 
 
   return (
-    <div className="flex min-h-screen bg-[#0b0b08] text-[#f1eee3]">
+    <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b08] text-[#f1eee3]">
+      {/* live 3D scanner spanning the page: invoices orbit through the beam, flagged ones flash */}
+      <Scene3D variant="hero" className="absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_50%,transparent,rgba(11,11,8,0.7))]" />
       <Hero/>
 
       {/* right panel */}
-      <div className="flex flex-1 items-center justify-center bg-[var(--bg-base)] p-8 lg:p-16">
-        <div className="w-full max-w-[400px]">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-8 lg:p-16">
+        <div className="glass-card w-full max-w-[440px] p-8 sm:p-10" style={{ animation: "rise 0.8s cubic-bezier(0.2,0.8,0.2,1) backwards" }}>
 
           {/* mobile logo */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
