@@ -55,7 +55,8 @@ function PwdStrength({ pwd }) {
 
 export default function Settings() {
   const { user: authUser } = useAuth();
-  const { avatar, setAvatar, clearAvatar } = useAvatar();
+  const { avatar, setAvatar, clearAvatar, saving: avatarSaving } = useAvatar();
+  const [avatarMsg, setAvatarMsg] = useState({ text: "", type: "" });
   const { dark, toggle: toggleDark } = useTheme();
 
   const [profile, setProfile] = useState(null);
@@ -86,30 +87,40 @@ export default function Settings() {
   }
   function toggleShow(f) { setPwdShow(s => ({ ...s, [f]: !s[f] })); }
 
-  // Compress image to ~80KB max and store as base64
+  // Center-crop to a 256px square JPEG (~20-40 KB) and save it on the server.
   function handleAvatarChange(e) {
     const file = e.target.files?.[0];
+    e.target.value = ""; // so the same file can be re-picked
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) {
+      setAvatarMsg({ text: "Please choose an image file.", type: "error" });
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX = 200; // 200×200px max
-        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width  = Math.round(img.width  * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-        setAvatar(dataUrl);
-      };
-      img.src = ev.target.result;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = async () => {
+      const SIZE = 256;
+      const side = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = SIZE;
+      canvas.getContext("2d").drawImage(
+        img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE,
+      );
+      URL.revokeObjectURL(url);
+      const err = await setAvatar(canvas.toDataURL("image/jpeg", 0.85));
+      setAvatarMsg(err ? { text: err, type: "error" } : { text: "Photo saved.", type: "ok" });
     };
-    reader.readAsDataURL(file);
-    // reset so same file can be re-picked
-    e.target.value = "";
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setAvatarMsg({ text: "That image could not be read.", type: "error" });
+    };
+    img.src = url;
+  }
+
+  async function removeAvatar() {
+    const err = await clearAvatar();
+    setAvatarMsg(err ? { text: err, type: "error" } : { text: "Photo removed.", type: "ok" });
   }
 
   async function submitPwd(e) {
@@ -201,14 +212,14 @@ export default function Settings() {
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
                   >
-                    <Camera size={11} /> Change photo
+                    <Camera size={11} /> {avatarSaving ? "Saving…" : "Change photo"}
                   </button>
                   {avatar && (
                     <>
                       <span className="text-slate-300">·</span>
                       <button
                         type="button"
-                        onClick={clearAvatar}
+                        onClick={removeAvatar}
                         className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-500 transition"
                       >
                         <Trash2 size={11} /> Remove
@@ -216,6 +227,11 @@ export default function Settings() {
                     </>
                   )}
                 </div>
+                {avatarMsg.text && (
+                  <p role="status" className={`mt-1 text-[11px] font-medium ${avatarMsg.type === "error" ? "text-rose-500" : "text-emerald-600"}`}>
+                    {avatarMsg.text}
+                  </p>
+                )}
               </div>
 
               <span className={`mb-1 ml-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${rm.cls}`}>

@@ -1,4 +1,7 @@
+import re
 from typing import Optional
+
+from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -6,10 +9,11 @@ from jose import JWTError, jwt
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_current_user, get_db
 from app.core.security import hash_password, JWT_SECRET_KEY, JWT_ALGORITHM
 from app.core.audit import log_action
 from app.models.user import User
+from app.models.user_avatar import UserAvatar
 from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -77,3 +81,63 @@ def create_user(
     db.commit()
 
     return new_user
+
+
+# ── Profile photo ─────────────────────────────────────────────────────────────
+
+# The frontend resizes photos to 256px JPEG (~20-40 KB); this caps abuse.
+_MAX_AVATAR_CHARS = 400_000
+_AVATAR_RE = re.compile(r"^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
+
+
+class AvatarBody(BaseModel):
+    avatar: str
+
+
+@router.get("/me/avatar")
+def get_my_avatar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = db.get(UserAvatar, current_user.id)
+    return {"avatar": row.data_url if row else None}
+
+
+@router.put("/me/avatar")
+def set_my_avatar(
+    body: AvatarBody,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if len(body.avatar) > _MAX_AVATAR_CHARS:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Photo is too large. Please choose a smaller image.",
+        )
+    if not _AVATAR_RE.match(body.avatar):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Photo must be a JPEG, PNG or WebP image.",
+        )
+
+    row = db.get(UserAvatar, current_user.id)
+    if row:
+        row.data_url = body.avatar
+    else:
+        db.add(UserAvatar(user_id=current_user.id, data_url=body.avatar))
+    log_action(db, action="AVATAR_UPDATED", user_id=current_user.id)
+    db.commit()
+    return {"avatar": body.avatar}
+
+
+@router.delete("/me/avatar", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_avatar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = db.get(UserAvatar, current_user.id)
+    if row:
+        db.delete(row)
+        log_action(db, action="AVATAR_REMOVED", user_id=current_user.id)
+        db.commit()
+    return None

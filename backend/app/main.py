@@ -17,6 +17,7 @@ from app.models.ai_fraud_analysis import AIFraudAnalysis
 from app.models.notification import Notification
 from app.models.password_reset import PasswordResetOTP
 from app.models.password_history import PasswordHistory
+from app.models.user_avatar import UserAvatar
 
 from app.api.users import router as users_router
 from app.api.auth import router as auth_router
