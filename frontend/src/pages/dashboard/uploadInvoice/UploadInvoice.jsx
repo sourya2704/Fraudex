@@ -1,8 +1,8 @@
-﻿import { CheckCircle2, FileText, Upload as UploadIcon, UploadCloud, X, Zap } from "lucide-react";
+﻿import { CheckCircle2, FileText, UploadCloud, X, Zap } from "lucide-react";
 import { useRef, useState } from "react";
 import Sidebar from "../../Sidebar/Sidebar";
 import InvoiceProcessing from "./InvoiceProcessing";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import NotificationBell from "../../../components/NotificationBell";
 
 const STEPS = [
@@ -21,6 +21,7 @@ export default function UploadInvoice() {
   const [uploadStep, setUploadStep] = useState(""); // current step message
   const [invoice,    setInvoice]    = useState(null);
   const [validation, setValidation] = useState(null);
+  const [fraud,      setFraud]      = useState(null);
   const [dragOver,   setDragOver]   = useState(false);
   const inputRef = useRef(null);
 
@@ -44,14 +45,24 @@ export default function UploadInvoice() {
       const { data: extracted } = await apiClient.post(`/invoices/${inv.id}/extract`);
       setUploadStep("Validating fields…");
       const { data: val }       = await apiClient.post(`/invoices/${inv.id}/validate`);
-      setInvoice(extracted); setValidation(val); setScreen("processing");
+      setUploadStep("Checking for fraud…");
+      // A failed fraud check should not hide the extraction result.
+      const fraudRes = await apiClient.post(`/invoices/${inv.id}/detect-fraud`).catch(() => null);
+      setInvoice(extracted); setValidation(val); setFraud(fraudRes?.data || null); setScreen("processing");
     } catch(e) {
-      setError(e.response?.data?.detail||"Upload failed. Check your connection and try again.");
+      setError(apiError(e, "Upload failed. Check your connection and try again."));
     } finally { setUploading(false); setUploadStep(""); }
   }
 
+  function reset() {
+    setFile(null); setError(""); setInvoice(null); setValidation(null); setFraud(null);
+    setScreen("upload");
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
   if (screen==="processing") return (
-    <InvoiceProcessing fileName={file?.name||"invoice.pdf"} invoice={invoice} validation={validation}/>
+    <InvoiceProcessing fileName={file?.name||"invoice.pdf"} invoice={invoice} validation={validation}
+      fraud={fraud} onUploadAnother={reset}/>
   );
 
   return (

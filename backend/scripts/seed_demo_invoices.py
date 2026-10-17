@@ -11,7 +11,7 @@ Includes a few deliberate fraud scenarios so the detection rules can be verified
 import os
 import sys
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -194,7 +194,13 @@ def build_invoice(
     tax = d(float(subtotal) * gst_rate)
     total = subtotal + tax
     due = inv_date + timedelta(days=random.choice([15, 30, 45, 60]))
+    # Uploaded a few days after the invoice date. Leaving created_at at "now"
+    # made every seeded invoice look like part of a rapid-submission burst.
+    created = datetime.combine(
+        inv_date + timedelta(days=random.randint(0, 10)), datetime.min.time()
+    ) + timedelta(hours=random.randint(9, 19), minutes=random.randint(0, 59))
     return Invoice(
+        created_at=created,
         vendor_id=vendor_id,
         invoice_number=inv_number,
         invoice_date=inv_date,
@@ -287,6 +293,7 @@ def seed():
                 bad_tax = d(float(bad_sub) * gst)
                 bad_total = bad_sub + bad_tax + d(99999)  # tampered total
                 bad = Invoice(
+                    created_at=datetime.now(),
                     vendor_id=vendor.id,
                     invoice_number=make_invoice_number(prefix, count + 1),
                     invoice_date=random_date(START_DATE, END_DATE),

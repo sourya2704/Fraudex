@@ -42,15 +42,24 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = request.cookies.get("fraudex_access_token")
-
-    if not token:
-        token = bearer_token
-
-    if not token:
+    # Try the Bearer header first, then the cookie. A stale cookie left over
+    # from an earlier login must not override a valid header token (and vice
+    # versa), so an invalid candidate falls through to the next one.
+    candidates = [t for t in (bearer_token, request.cookies.get("fraudex_access_token")) if t]
+    if not candidates:
         raise credentials_exception
 
-    payload = _decode_token(token)
+    payload = None
+    last_error = credentials_exception
+    for token in candidates:
+        try:
+            payload = _decode_token(token)
+            break
+        except HTTPException as e:
+            last_error = e
+    if payload is None:
+        raise last_error
+
     user_id = payload.get("sub")
 
     user = db.query(User).filter(User.id == int(user_id)).first()

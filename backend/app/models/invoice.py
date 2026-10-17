@@ -91,3 +91,22 @@ class Invoice(Base):
         back_populates="invoice",
         cascade="all, delete-orphan",
     )
+
+    @property
+    def vendor_name(self):
+        return self.vendor.name if self.vendor is not None else None
+
+    @property
+    def _latest_fraud_result(self):
+        results = getattr(self, "fraud_result", None) or []
+        return results[-1] if results else None
+
+    @property
+    def risk_score(self):
+        result = self._latest_fraud_result
+        return result.risk_score if result is not None else None
+
+    @property
+    def risk_level(self):
+        result = self._latest_fraud_result
+        return result.risk_level if result is not None else None

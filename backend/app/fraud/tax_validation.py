@@ -109,26 +109,6 @@ def validate_tax_calculation(invoice: Invoice) -> Optional[FraudFlag]:
             field_name="total_amount",
         )
 
-    # Also validate that tax is correctly calculated from subtotal
-    if invoice.subtotal > 0:
-        tax_rate = invoice.tax / invoice.subtotal
-        expected_tax = invoice.subtotal * tax_rate
-        
-        if abs(expected_tax - invoice.tax) > tolerance:
-            return FraudFlag(
-                code="TAX_AMOUNT_INCONSISTENT",
-                severity=Severity.MEDIUM,
-                message=f"Tax amount (₹{invoice.tax}) is inconsistent with "
-                        f"subtotal and calculated rate",
-                evidence={
-                    "subtotal": str(invoice.subtotal),
-                    "stated_tax": str(invoice.tax),
-                    "calculated_tax": str(round(expected_tax, 2)),
-                    "tax_rate": round(float(tax_rate) * 100, 2),
-                },
-                field_name="tax",
-            )
-
     return None
 
 

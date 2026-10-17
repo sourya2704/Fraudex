@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, List, Optional
 
-_AMOUNT_TOLERANCE = Decimal("2.00")  # ₹2 tolerance for rounding (handles CGST+SGST split invoices)
+_AMOUNT_TOLERANCE = Decimal("2.00")  # ₹2 tolerance for rounding / round-off lines
 
 _REQUIRED_FIELDS = [
     "invoice_number",
@@ -99,12 +99,9 @@ def validate_invoice_fields(
         and isinstance(total_amount, Decimal)
     ):
         expected = subtotal + tax
-        diff = abs(expected - total_amount)
-        # Check if this might be a CGST+SGST split invoice where tax is only half
-        expected_double_tax = subtotal + (tax * 2)
-        diff_double = abs(expected_double_tax - total_amount)
-
-        if diff > _AMOUNT_TOLERANCE and diff_double > _AMOUNT_TOLERANCE:
+        # The parser already sums CGST + SGST, so tax is the full GST amount.
+        # (Accepting subtotal + 2*tax here used to hide real mismatches.)
+        if abs(expected - total_amount) > _AMOUNT_TOLERANCE:
             result.add(
                 "TOTAL_MISMATCH",
                 Severity.ERROR,

@@ -1,6 +1,6 @@
 ﻿import { Camera, Lock, Moon, Save, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import { useAuth } from "../../../context/AuthContext";
 import { useAvatar } from "../../../context/AvatarContext";
 import { useTheme } from "../../../context/ThemeContext";
@@ -127,7 +127,7 @@ export default function Settings() {
       setPwdMsg({ text: "Password changed successfully!", type: "success" });
       setPwd({ current: "", next: "", confirm: "" });
     } catch (err) {
-      setPwdMsg({ text: err.response?.data?.detail || "Failed to change password.", type: "error" });
+      setPwdMsg({ text: apiError(err, "Failed to change password."), type: "error" });
     } finally {
       setPwdLoading(false);
     }

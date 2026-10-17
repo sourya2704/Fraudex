@@ -4,6 +4,7 @@ Duplicate Invoice Detection
 Detects exact duplicate invoices and similar invoices that may indicate fraud.
 """
 
+import re
 from datetime import timedelta
 from decimal import Decimal
 from typing import List, Optional
@@ -14,6 +15,11 @@ from sqlalchemy.orm import Session
 from app.fraud.config import FraudConfig
 from app.fraud.models import FraudFlag, Severity
 from app.models.invoice import Invoice
+
+
+def normalize_invoice_number(value: Optional[str]) -> str:
+    """Case/separator-insensitive form of an invoice number."""
+    return re.sub(r"[^0-9A-Za-z]", "", value or "").upper()
 
 
 def check_duplicate_invoice(db: Session, invoice: Invoice) -> Optional[FraudFlag]:
@@ -31,15 +37,21 @@ def check_duplicate_invoice(db: Session, invoice: Invoice) -> Optional[FraudFlag
     if not invoice.vendor_id or not invoice.invoice_number:
         return None
 
-    # Query for invoices with same vendor and invoice number
-    # Exclude the current invoice from the search
-    duplicate = db.query(Invoice).filter(
+    # Same vendor + same invoice number, ignoring case, spaces and
+    # separators ("INV-001" == "inv 001"), which is how resubmitted
+    # invoices are usually disguised.
+    target = normalize_invoice_number(invoice.invoice_number)
+    candidates = db.query(Invoice).filter(
         and_(
             Invoice.vendor_id == invoice.vendor_id,
-            Invoice.invoice_number == invoice.invoice_number,
+            Invoice.invoice_number.isnot(None),
             Invoice.id != invoice.id,  # Exclude self
         )
-    ).first()
+    ).all()
+    duplicate = next(
+        (c for c in candidates if normalize_invoice_number(c.invoice_number) == target),
+        None,
+    )
 
     if duplicate:
         return FraudFlag(
@@ -107,52 +119,82 @@ def check_similar_invoice(db: Session, invoice: Invoice) -> List[FraudFlag]:
         )
     ).all()
 
-    # Create flags for each similar invoice
-    for similar in similar_invoices:
-        # Calculate similarity metrics
-        amount_diff_pct = abs(
-            float((similar.total_amount - amount) / amount * 100)
-        )
-        date_diff_days = abs((similar.invoice_date - invoice_date).days)
+    if not similar_invoices:
+        return flags
 
-        flags.append(
-            FraudFlag(
-                code="SIMILAR_INVOICE",
-                severity=Severity.HIGH,
-                message=f"Similar invoice detected: Invoice ID {similar.id} has "
-                        f"similar amount (±{amount_diff_pct:.1f}%) and date "
-                        f"(±{date_diff_days} days) from the same vendor",
-                evidence={
-                    "similar_invoice_id": similar.id,
-                    "similar_invoice_number": similar.invoice_number,
-                    "similar_amount": str(similar.total_amount),
-                    "amount_difference_pct": round(amount_diff_pct, 2),
-                    "similar_date": similar.invoice_date.isoformat(),
-                    "date_difference_days": date_diff_days,
-                    "similar_created_at": similar.created_at.isoformat() if similar.created_at else None,
-                },
-                field_name="total_amount",
-            )
+    # One flag for the closest match. Vendors that bill often legitimately
+    # send invoices of similar size within a week, so only a near-identical
+    # amount and date is HIGH; a looser match is a weaker signal. (One HIGH
+    # flag per match made this the main source of false positives.)
+    def closeness(other):
+        pct = abs(float((other.total_amount - amount) / amount * 100))
+        days = abs((other.invoice_date - invoice_date).days)
+        return pct, days
+
+    closest = min(similar_invoices, key=closeness)
+    amount_diff_pct, date_diff_days = closeness(closest)
+
+    if amount_diff_pct <= 0.5 and date_diff_days <= 2:
+        severity = Severity.HIGH
+    elif amount_diff_pct <= 2.0:
+        severity = Severity.MEDIUM
+    else:
+        severity = Severity.LOW
+
+    flags.append(
+        FraudFlag(
+            code="SIMILAR_INVOICE",
+            severity=severity,
+            message=f"Similar invoice detected: Invoice ID {closest.id} has "
+                    f"similar amount (±{amount_diff_pct:.1f}%) and date "
+                    f"(±{date_diff_days} days) from the same vendor"
+                    + (f" ({len(similar_invoices)} similar invoices in total)"
+                       if len(similar_invoices) > 1 else ""),
+            evidence={
+                "similar_invoice_id": closest.id,
+                "similar_invoice_number": closest.invoice_number,
+                "similar_amount": str(closest.total_amount),
+                "amount_difference_pct": round(amount_diff_pct, 2),
+                "similar_date": closest.invoice_date.isoformat(),
+                "date_difference_days": date_diff_days,
+                "similar_created_at": closest.created_at.isoformat() if closest.created_at else None,
+                "similar_invoice_count": len(similar_invoices),
+            },
+            field_name="total_amount",
         )
+    )
 
     return flags
 
 
 def check_duplicate_document(db: Session, invoice: Invoice) -> Optional[FraudFlag]:
     """
-    Check if the same document has been uploaded before.
-    
-    Note: This is a placeholder for future implementation that would
-    compare document hashes or content similarity.
-    
-    Args:
-        db: Database session
-        invoice: Invoice to check
-        
-    Returns:
-        FraudFlag if duplicate document found, None otherwise
+    Check if the same document content has been uploaded before.
+
+    Compares the extracted text, so it also catches a re-upload of the same
+    file under a different name, and works when no vendor could be linked.
     """
-    # TODO: Implement document hash comparison
-    # This would require calculating and storing document hashes
-    # For now, we rely on invoice number and amount similarity
-    return None
+    text = (invoice.raw_text or "").strip()
+    # Too little text (failed OCR, blank page) would match unrelated uploads.
+    if len(text) < 50:
+        return None
+
+    duplicate = db.query(Invoice).filter(
+        Invoice.id != invoice.id,
+        Invoice.raw_text == invoice.raw_text,
+    ).order_by(Invoice.id).first()
+
+    if duplicate is None:
+        return None
+
+    return FraudFlag(
+        code="DUPLICATE_DOCUMENT",
+        severity=Severity.CRITICAL,
+        message=f"The same document was already uploaded as Invoice ID {duplicate.id}",
+        evidence={
+            "duplicate_invoice_id": duplicate.id,
+            "duplicate_invoice_number": duplicate.invoice_number,
+            "duplicate_created_at": duplicate.created_at.isoformat() if duplicate.created_at else None,
+        },
+        field_name="document_path",
+    )

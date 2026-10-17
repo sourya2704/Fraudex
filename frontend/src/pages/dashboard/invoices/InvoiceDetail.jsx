@@ -18,7 +18,7 @@
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -238,7 +238,7 @@ function ReviewForm({ invoiceId, existingReview, onReviewed }) {
       await apiClient.post(`/invoices/${invoiceId}/review`, { decision, reason });
       setEditing(false);
       onReviewed();
-    } catch(err) { setError(err.response?.data?.detail || "Failed to submit review"); }
+    } catch(err) { setError(apiError(err, "Failed to submit review")); }
     finally { setSubmitting(false); }
   }
 
@@ -348,6 +348,11 @@ export default function InvoiceDetail() {
   const [error, setError]         = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting]   = useState(false);
+  const [actionError, setActionError] = useState(null);
+
+  function showActionError(what, e) {
+    setActionError(`${what} failed: ${apiError(e, e?.message || "unknown error")}`);
+  }
 
   async function loadAll() {
     try {
@@ -373,33 +378,34 @@ export default function InvoiceDetail() {
   useEffect(()=>{ loadAll(); },[invoiceId]);
 
   async function runExtract() {
-    setRunningExtract(true);
+    setRunningExtract(true); setActionError(null);
     try { await apiClient.post(`/invoices/${invoiceId}/extract`); await loadAll(); }
+    catch (e) { showActionError("Extraction", e); await loadAll(); }
     finally { setRunningExtract(false); }
   }
 
   async function runFraudCheck() {
-    setRunningFraud(true);
+    setRunningFraud(true); setActionError(null);
     try {
       const r = await apiClient.post(`/invoices/${invoiceId}/detect-fraud`); setFraud(r.data);
       const v = await apiClient.post(`/invoices/${invoiceId}/validate`); setValidation(v.data.validation);
       const a = await apiClient.get(`/audit/${invoiceId}`); setAudit(a.data);
+    } catch (e) {
+      showActionError("Fraud check", e);
     } finally { setRunningFraud(false); }
   }
 
   async function runAIAnalysis() {
-    setRunningAI(true);
+    setRunningAI(true); setActionError(null);
     try {
       const res = await apiClient.post(`/invoices/${invoiceId}/ai-analyze`);
       setAiAnalysis(res.data);
       const auditRes = await apiClient.get(`/audit/${invoiceId}`);
       setAudit(auditRes.data);
     } catch (e) {
-      console.error("AI analysis failed:", e);
+      showActionError("AI analysis", e);
     } finally { setRunningAI(false); }
   }
-
-  function refresh() { setRefreshing(true); loadAll(); }
 
   async function deleteInvoice() {
     setDeleting(true);
@@ -407,7 +413,7 @@ export default function InvoiceDetail() {
       await apiClient.delete(`/invoices/${invoiceId}`);
       navigate("/dashboard/invoices");
     } catch(e) {
-      alert(e.response?.data?.detail || "Failed to delete invoice.");
+      alert(apiError(e, "Failed to delete invoice."));
       setDeleting(false);
       setShowDeleteModal(false);
     }
@@ -475,6 +481,13 @@ export default function InvoiceDetail() {
 
         <div className="mx-auto max-w-6xl space-y-5 px-5 py-6 sm:px-8">
 
+          {actionError && (
+            <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+              <span>{actionError}</span>
+              <button type="button" onClick={()=>setActionError(null)} className="font-semibold hover:text-rose-900">Dismiss</button>
+            </div>
+          )}
+
           {/* ── Row 1: fields + risk ring ──────────────────────────────── */}
           <div className="grid gap-5 lg:grid-cols-[1fr_200px]">
 
@@ -493,6 +506,7 @@ export default function InvoiceDetail() {
               </div>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 <FieldTile label="Invoice Number" value={invoice.invoice_number}/>
+                <FieldTile label="Vendor"         value={invoice.vendor_name} warn={!invoice.vendor_name}/>
                 <FieldTile label="Invoice Date"   value={fmt(invoice.invoice_date)}/>
                 <FieldTile label="Due Date"       value={fmt(invoice.due_date)}/>
                 <FieldTile label="Subtotal"       value={fmtAmt(invoice.subtotal,invoice.currency)}/>
@@ -674,7 +688,9 @@ export default function InvoiceDetail() {
                       Final Risk Level: {aiAnalysis.risk_level}
                     </span>
                     <span className="ml-auto text-[11px] text-slate-400">
-                      60% deterministic + 40% AI weighted
+                      {aiAnalysis.risk_score_ai==null
+                        ? "AI model unavailable — deterministic score used"
+                        : "60% deterministic + 40% AI weighted"}
                     </span>
                   </div>
                 )}

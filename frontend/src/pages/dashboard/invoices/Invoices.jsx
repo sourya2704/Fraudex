@@ -1,7 +1,7 @@
 ﻿import { ChevronDown, ChevronRight, FileText, RefreshCw, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import { useAuth } from "../../../context/AuthContext";
 import NotificationBell from "../../../components/NotificationBell";
@@ -50,16 +50,16 @@ export default function Invoices() {
 
   async function loadData() {
     try {
+      // The list already carries each invoice's risk score/level, so no
+      // per-invoice /fraud-detection request (that was 1 request per row).
       const { data } = await apiClient.get("/invoices/");
       setInvoices(data);
-      const results = await Promise.allSettled(
-        data.map(inv => apiClient.get(`/invoices/${inv.id}/fraud-detection`)
-          .then(r => ({ id: inv.id, fraud: r.data })).catch(()=>({ id: inv.id, fraud: null })))
-      );
       const map = {};
-      results.forEach(r => { if (r.status==="fulfilled" && r.value.fraud) map[r.value.id]=r.value.fraud; });
+      data.forEach(inv => {
+        if (inv.risk_level) map[inv.id] = { risk_score: inv.risk_score, risk_level: inv.risk_level };
+      });
       setFraudMap(map); setError(null);
-    } catch(e) { setError(e.response?.data?.detail||"Failed to load invoices"); }
+    } catch(e) { setError(apiError(e, "Failed to load invoices")); }
     finally { setLoading(false); setRefreshing(false); }
   }
 
@@ -73,7 +73,7 @@ export default function Invoices() {
       setInvoices(prev => prev.filter(i => i.id !== id));
       setFraudMap(prev => { const n = {...prev}; delete n[id]; return n; });
     } catch(e) {
-      alert(e.response?.data?.detail || "Failed to delete invoice.");
+      alert(apiError(e, "Failed to delete invoice."));
     } finally {
       setDeleting(null);
       setConfirmId(null);
@@ -82,7 +82,7 @@ export default function Invoices() {
 
   const visible = invoices.filter(inv=>{
     const q = query.toLowerCase();
-    const mQ = !query||String(inv.id).includes(q)||(inv.invoice_number||"").toLowerCase().includes(q)||(inv.vendor?.name||"").toLowerCase().includes(q);
+    const mQ = !query||String(inv.id).includes(q)||(inv.invoice_number||"").toLowerCase().includes(q)||(inv.vendor_name||"").toLowerCase().includes(q);
     const mS = statusFilt==="All"||inv.status===statusFilt;
     const lvl = fraudMap[inv.id]?.risk_level;
     const mR = riskFilt==="All"||(riskFilt==="High"&&(lvl==="HIGH"||lvl==="CRITICAL"))||(riskFilt==="Medium"&&lvl==="MEDIUM")||(riskFilt==="Low"&&lvl==="LOW")||(riskFilt==="Unanalyzed"&&!lvl);
@@ -189,7 +189,7 @@ export default function Invoices() {
                       <tr key={inv.id} className="transition hover:bg-indigo-50/30">
                         <td className="px-5 py-3.5 text-xs font-bold text-slate-400">#{displayNum}</td>
                         <td className="px-5 py-3.5 text-xs font-medium text-slate-700">{inv.invoice_number||<span className="text-slate-300">—</span>}</td>
-                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor?.name||<span className="text-slate-300">Unknown</span>}</td>
+                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name||<span className="text-slate-300">Unknown</span>}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-500">{fmt(inv.invoice_date)}</td>
                         <td className="px-5 py-3.5 text-xs font-semibold text-slate-800">{fmtAmt(inv.total_amount,inv.currency)}</td>
                         <td className="px-5 py-3.5"><Badge cls={STATUS_STYLE[inv.status]||STATUS_STYLE.DRAFT}>{STATUS_LABEL[inv.status]||inv.status}</Badge></td>

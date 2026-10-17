@@ -8,7 +8,8 @@ from fastapi import (
     UploadFile,
     status,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.dependencies import get_db, get_current_user, require_role
 from app.core.storage import (
@@ -18,12 +19,14 @@ from app.core.storage import (
     ensure_storage_dir,
 )
 from app.extraction import extract_text, ExtractionError
-from app.extraction.parser import parse_invoice_text
+from app.extraction.parser import normalize_gstin, parse_invoice_text
 from app.validation import validate_invoice_fields
 from app.models.invoice import Invoice, InvoiceStatus
+from app.models.invoice_item import InvoiceItem
+from app.models.vendor import Vendor
 from app.models.user import User
 from app.models.fraud_detection_result import FraudDetectionResult
-from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
+from app.schemas.invoice import InvoiceListItem, InvoiceResponse, InvoiceUpdate
 from app.schemas.fraud import FraudDetectionResponse, FraudDetectionSummary
 from app.fraud.detector import FraudDetector
 from app.core.audit import log_action
@@ -116,12 +119,19 @@ def _get_invoice_or_404(db: Session, invoice_id: int) -> Invoice:
         )
     return invoice
 
-@router.get("/", response_model=list[InvoiceResponse])
+@router.get("/", response_model=list[InvoiceListItem])
 def list_invoices(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Invoice).order_by(Invoice.id.desc()).all()
+    # Vendor and fraud result are loaded in two batched queries, so the list
+    # carries vendor_name / risk_level without one request per invoice.
+    return (
+        db.query(Invoice)
+        .options(selectinload(Invoice.vendor), selectinload(Invoice.fraud_result))
+        .order_by(Invoice.id.desc())
+        .all()
+    )
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 def get_invoice(
@@ -196,6 +206,37 @@ def delete_invoice(
 
     return None
 
+def _match_or_create_vendor(db: Session, parsed_vendor: dict):
+    """
+    Link the supplier printed on the invoice to a Vendor row.
+
+    GSTIN is the reliable identity, so it is matched first (ignoring a 'GSTIN'
+    prefix some records carry). A vendor is created only when the invoice has
+    a valid GSTIN; a name alone is matched case-insensitively but never used
+    to create a vendor, since OCR'd names are too noisy.
+    """
+    gstin = normalize_gstin(parsed_vendor.get("gstin"))
+    name = (parsed_vendor.get("name") or "").strip()
+
+    if gstin:
+        for vendor in db.query(Vendor).filter(Vendor.tax_id.isnot(None)).all():
+            if normalize_gstin(vendor.tax_id) == gstin:
+                return vendor
+
+    if name:
+        vendor = db.query(Vendor).filter(func.lower(Vendor.name) == name.lower()).first()
+        if vendor is not None:
+            return vendor
+
+    if gstin:
+        vendor = Vendor(name=name[:255] or f"Vendor {gstin}", tax_id=gstin)
+        db.add(vendor)
+        db.flush()
+        return vendor
+
+    return None
+
+
 @router.post("/{invoice_id}/extract", response_model=InvoiceResponse)
 def extract_invoice_text(
     invoice_id: int,
@@ -241,10 +282,23 @@ def extract_invoice_text(
 
     invoice.raw_text = raw_text
 
-    parsed = parse_invoice_text(raw_text)["fields"]
+    parsed_all = parse_invoice_text(raw_text)
+    parsed = parsed_all["fields"]
     for name, value in parsed.items():
         if value is not None and getattr(invoice, name, None) in (None, ""):
             setattr(invoice, name, value)
+
+    vendor_linked = None
+    if invoice.vendor_id is None:
+        vendor = _match_or_create_vendor(db, parsed_all.get("vendor") or {})
+        if vendor is not None:
+            invoice.vendor_id = vendor.id
+            vendor_linked = vendor.id
+
+    # Re-extracting replaces the previous line items instead of duplicating them.
+    db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).delete()
+    for item in parsed_all.get("line_items", []):
+        db.add(InvoiceItem(invoice_id=invoice.id, **item))
 
     invoice.status = InvoiceStatus.ANALYSIS_READY.value
 
@@ -253,7 +307,13 @@ def extract_invoice_text(
         action="INVOICE_EXTRACTED",
         user_id=current_user.id,
         invoice_id=invoice_id,
-        detail={"success": True, "method": method, "chars": len(raw_text)},
+        detail={
+            "success": True,
+            "method": method,
+            "chars": len(raw_text),
+            "line_items": len(parsed_all.get("line_items", [])),
+            "vendor_id": vendor_linked,
+        },
     )
 
     db.commit()

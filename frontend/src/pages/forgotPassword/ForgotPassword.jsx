@@ -1,7 +1,7 @@
 import { ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import apiClient from "../../api/client";
+import apiClient, { apiError } from "../../api/client";
 
 /* ── tiny spinner ─────────────────────────────────────────────────────────── */
 function Spinner() {
@@ -91,7 +91,7 @@ export default function ForgotPassword() {
       });
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid or expired OTP.");
+      setError(apiError(err, "Invalid or expired OTP."));
     } finally {
       setLoading(false);
     }
