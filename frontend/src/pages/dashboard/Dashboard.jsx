@@ -315,7 +315,7 @@ export default function Dashboard() {
                             <p className="text-xs font-semibold text-slate-700">{inv.invoice_number||"—"}</p>
                             <p className="mt-0.5 text-[10px] text-slate-400">{fmt(inv.invoice_date)}</p>
                           </td>
-                          <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor?.name||<span className="text-slate-300">Unknown</span>}</td>
+                          <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name||<span className="text-slate-300">Unknown</span>}</td>
                           <td className="px-5 py-3.5 text-xs font-medium text-slate-800">{fmtAmt(inv.total_amount,inv.currency)}</td>
                           <td className="px-5 py-3.5"><Badge cls={STATUS_STYLE[inv.status]||STATUS_STYLE.DRAFT}>{STATUS_LABEL[inv.status]||inv.status}</Badge></td>
                           <td className="px-5 py-3.5">
