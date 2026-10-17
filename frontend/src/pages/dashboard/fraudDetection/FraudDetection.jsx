@@ -8,7 +8,7 @@ import {
   RadialBarChart, RadialBar, ResponsiveContainer,
   PieChart, Pie, Cell, Tooltip,
 } from "recharts";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import NotificationBell from "../../../components/NotificationBell";
 
@@ -152,7 +152,7 @@ export default function FraudDetection() {
         apiClient.get("/fraud/risk-distribution"),
       ]);
       setStats(sR.data); setHighRisk(hR.data); setDist(dR.data); setError(null);
-    } catch (e) { setError(e.response?.data?.detail || "Failed to load fraud data"); }
+    } catch (e) { setError(apiError(e, "Failed to load fraud data")); }
     finally { setLoading(false); setRefreshing(false); }
   }
 

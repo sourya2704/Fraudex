@@ -1,6 +1,7 @@
 ﻿import { Eye, EyeOff, ShieldCheck, Zap, TrendingUp, Lock } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { apiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 
 const STATS = [
@@ -42,7 +43,7 @@ export default function Login() {
       await login(form.email.trim(), form.password, remember);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid credentials. Please try again.");
+      setError(apiError(err, "Invalid credentials. Please try again."));
     } finally {
       setLoading(false);
     }

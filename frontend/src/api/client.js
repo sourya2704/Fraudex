@@ -40,3 +40,25 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+/**
+ * Human-readable message from an API error. FastAPI returns `detail` as a
+ * string for HTTP errors but as a list of objects for 422 validation errors;
+ * rendering that list directly crashes React.
+ */
+export function apiError(err, fallback = "Something went wrong.") {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail
+      .map((d) => {
+        const field = Array.isArray(d.loc) ? d.loc.filter((p) => p !== "body").join(".") : "";
+        return field ? `${field}: ${d.msg}` : d.msg;
+      })
+      .join("; ");
+  }
+  if (!err?.response && err?.message === "Network Error") {
+    return "Cannot reach the FrauDex API. Is the backend running on port 8000?";
+  }
+  return fallback;
+}

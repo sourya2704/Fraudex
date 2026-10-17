@@ -1,7 +1,7 @@
 ﻿import { Eye, EyeOff, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import apiClient from "../../api/client";
+import apiClient, { apiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 
 function getStrength(pwd) {
@@ -82,7 +82,7 @@ export default function Signup() {
       await login(form.email.trim(), form.password, false);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setServerErr(err.response?.data?.detail || "Could not create account. Try again.");
+      setServerErr(apiError(err, "Could not create account. Try again."));
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Sidebar from "../../Sidebar/Sidebar";
-import apiClient from "../../../api/client";
+import apiClient, { apiError } from "../../../api/client";
 import NotificationBell from "../../../components/NotificationBell";
 
 /* ── meta ─────────────────────────────────────────────────────────────────── */
@@ -200,7 +200,7 @@ export default function AuditLog() {
     const p = filter!=="ALL" ? {action:filter,limit:200} : {limit:200};
     apiClient.get("/audit/",{params:p})
       .then(r=>{ setLogs(r.data); setLoading(false); })
-      .catch(e=>{ setError(e.response?.data?.detail||"Failed to load audit log"); setLoading(false); });
+      .catch(e=>{ setError(apiError(e, "Failed to load audit log")); setLoading(false); });
   },[filter]);
 
   const visible = logs.filter(e=>{

@@ -2,7 +2,14 @@
 import { Link } from "react-router-dom";
 import Sidebar from "../../Sidebar/Sidebar";
 
-export default function InvoiceProcessing({ fileName, invoice, validation }) {
+const RISK_STYLE = {
+  LOW:      "border-emerald-200 bg-emerald-50 text-emerald-700",
+  MEDIUM:   "border-amber-200 bg-amber-50 text-amber-700",
+  HIGH:     "border-orange-200 bg-orange-50 text-orange-700",
+  CRITICAL: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+export default function InvoiceProcessing({ fileName, invoice, validation, fraud, onUploadAnother }) {
   const valid     = validation?.validation?.valid;
   const errors    = validation?.validation?.error_count   || 0;
   const warnings  = validation?.validation?.warning_count || 0;
@@ -26,7 +33,7 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
             </div>
 
             <h2 className="mt-5 text-xl font-bold text-slate-900">Analysis Complete</h2>
-            <p className="mt-2 text-sm text-slate-400">Your invoice was extracted and checked for data consistency.</p>
+            <p className="mt-2 text-sm text-slate-400">Your invoice was extracted, validated and checked for fraud.</p>
 
             {/* file name */}
             <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-left">
@@ -89,6 +96,22 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
               </div>
             )}
 
+            {/* fraud result */}
+            {fraud && (
+              <div className={`mt-4 rounded-xl border px-5 py-4 text-left ${RISK_STYLE[fraud.risk_level]||RISK_STYLE.LOW}`}>
+                <p className="text-sm font-semibold">
+                  Fraud risk: {fraud.risk_level} · {Number(fraud.risk_score).toFixed(1)} / 100
+                </p>
+                {fraud.fraud_flags?.length>0 ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {fraud.fraud_flags.slice(0,3).map((f,i)=>(
+                      <li key={i} className="text-xs">{f.severity}: {f.message}</li>
+                    ))}
+                  </ul>
+                ) : <p className="mt-1 text-xs">No fraud signals detected.</p>}
+              </div>
+            )}
+
             {/* actions */}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
               {invoice && (
@@ -97,10 +120,11 @@ export default function InvoiceProcessing({ fileName, invoice, validation }) {
                   View Full Analysis <ArrowRight size={15}/>
                 </Link>
               )}
-              <Link to="/dashboard/upload-invoice"
+              {/* Same route, so a Link would not reset the page: reset state instead. */}
+              <button type="button" onClick={onUploadAnother}
                 className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600">
                 Upload Another
-              </Link>
+              </button>
             </div>
           </div>
         </div>
