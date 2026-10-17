@@ -95,3 +95,28 @@ class InvoiceResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     items: List[InvoiceItemResponse] = Field(default_factory=list)
+    vendor_name: Optional[str] = None
+    risk_score: Optional[float] = None
+    risk_level: Optional[str] = None
+
+
+class InvoiceListItem(BaseModel):
+    """Row for invoice lists: no raw text or line items, plus vendor and risk."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    invoice_number: Optional[str] = None
+    vendor_id: Optional[int] = None
+    vendor_name: Optional[str] = None
+    uploaded_by: Optional[int] = None
+    invoice_date: Optional[date] = None
+    due_date: Optional[date] = None
+    subtotal: Optional[Decimal] = None
+    tax: Optional[Decimal] = None
+    total_amount: Optional[Decimal] = None
+    currency: Optional[str] = None
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    risk_score: Optional[float] = None
+    risk_level: Optional[str] = None

@@ -1,6 +1,7 @@
+import os
+import re
 from decimal import Decimal
 from typing import Any
-import os
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
@@ -13,8 +14,12 @@ from app.rag.config import AI_WEIGHT, DETERMINISTIC_WEIGHT
 from app.rag.store import RAGStore
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL     = "gemini-3-flash-preview"
+GEMINI_MODEL     = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 GEMINI_FALLBACKS = ["gemini-flash-latest", "gemini-pro-latest", "gemini-flash-lite-latest"]
+
+
+class LLMUnavailable(Exception):
+    """No LLM could be reached; callers fall back to deterministic output."""
 
 
 def _call_gemini(prompt: str) -> str:
@@ -41,6 +46,41 @@ def _call_gemini(prompt: str) -> str:
     raise last_error
 
 
+def _call_ollama(prompt: str) -> str:
+    from langchain_ollama import ChatOllama
+    from app.rag.config import OLLAMA_BASE_URL, OLLAMA_LLM_MODEL
+
+    llm = ChatOllama(base_url=OLLAMA_BASE_URL, model=OLLAMA_LLM_MODEL, temperature=0)
+    return llm.invoke(prompt).content.strip()
+
+
+def _call_llm(prompt: str) -> tuple[str, str]:
+    """
+    Run the prompt on Gemini (if GEMINI_API_KEY is set) and otherwise on the
+    local Ollama model. Returns (text, provider). Raises LLMUnavailable when
+    neither answers, so callers can say so instead of inventing a score.
+    """
+    errors = []
+    if GEMINI_API_KEY:
+        try:
+            return _call_gemini(prompt), "gemini"
+        except Exception as e:
+            errors.append(f"gemini: {type(e).__name__}: {e}")
+    try:
+        return _call_ollama(prompt), "ollama"
+    except Exception as e:
+        errors.append(f"ollama: {type(e).__name__}: {e}")
+    raise LLMUnavailable("; ".join(errors))
+
+
+def _parse_score(text: str) -> float:
+    """First number in the reply, clamped to 0-100 ("Score: 45/100" -> 45)."""
+    match = re.search(r"\d+(?:\.\d+)?", text or "")
+    if not match:
+        raise ValueError(f"no score in LLM reply: {text!r}")
+    return min(100.0, max(0.0, float(match.group())))
+
+
 def _safe_float(v) -> float | None:
     if v is None:
         return None
@@ -61,14 +101,26 @@ def invoice_analyzer(state: FraudAnalysisState, db: Session) -> FraudAnalysisSta
         FraudDetectionResult.invoice_id == state["invoice_id"]
     ).first()
 
-    flags_summary = []
-    det_score = None
     if fraud_result:
         det_score = fraud_result.risk_score
-        flags_summary = [
-            f"{f['severity']}: {f['code']} — {f['message']}"
-            for f in (fraud_result.fraud_flags or [])
-        ]
+        raw_flags = fraud_result.fraud_flags or []
+    else:
+        # Fraud check was never run: run it now instead of treating the
+        # deterministic score as 0.
+        from app.fraud.detector import FraudDetector
+        detection = FraudDetector(db).detect_fraud(invoice).to_dict()
+        det_score = detection["risk_score"]
+        raw_flags = detection["fraud_flags"]
+    flags_summary = [
+        f"{f['severity']}: {f['code']} — {f['message']}" for f in raw_flags
+    ]
+
+    from app.ml.model import score_invoice
+    try:
+        ml = score_invoice(db, invoice)
+    except Exception as e:
+        print(f"[ML] scoring failed: {e}")
+        ml = None
 
     context = {
         "invoice_id": invoice.id,
@@ -83,6 +135,8 @@ def invoice_analyzer(state: FraudAnalysisState, db: Session) -> FraudAnalysisSta
         "status": invoice.status,
         "deterministic_flags": flags_summary,
         "deterministic_score": det_score,
+        "ml_fraud_probability": ml["probability"] if ml else None,
+        "ml_top_factors": [f["feature"] for f in ml["top_factors"]] if ml else [],
     }
 
     return {
@@ -190,11 +244,24 @@ def historical_analyzer(state: FraudAnalysisState, db: Session) -> FraudAnalysis
                 "detail": f"Invoice amount is {ratio}x vendor average",
             })
         if vc.get("is_new_vendor"):
+            from app.fraud.config import FraudConfig
+            high_value = ctx["total_amount"] > float(FraudConfig.HIGH_VALUE_THRESHOLD)
             signals.append({
-                "signal": "NEW_VENDOR_HIGH_VALUE",
-                "severity": "MEDIUM",
+                "signal": "NEW_VENDOR_HIGH_VALUE" if high_value else "NEW_VENDOR",
+                "severity": "MEDIUM" if high_value else "LOW",
                 "detail": f"New vendor with only {vc.get('total_invoices', 0)} prior invoices",
             })
+
+    ml_prob = ctx.get("ml_fraud_probability")
+    if ml_prob is not None and ml_prob >= 0.5:
+        signals.append({
+            "signal": "ML_FRAUD_PATTERN",
+            "severity": "HIGH" if ml_prob >= 0.9 else "MEDIUM",
+            "detail": (
+                f"Trained model gives {ml_prob:.0%} fraud probability "
+                f"(factors: {', '.join(ctx.get('ml_top_factors', [])[:3]) or 'n/a'})"
+            ),
+        })
 
     if state["duplicate_findings"] and state["duplicate_findings"]["exact_duplicates"]:
         signals.append({
@@ -224,13 +291,22 @@ def rag_evidence_retriever(state: FraudAnalysisState, db: Session) -> FraudAnaly
     ]
     query = " | ".join(query_parts)
 
-    try:
-        rag = RAGStore(db)
-        passages = rag.search(query, top_k=5)
-    except Exception as e:
-        passages = []
+    from app.models.knowledge_chunk import KnowledgeChunk
+    status = None
+    passages = []
+    if db.query(KnowledgeChunk.id).first() is None:
+        # Nothing to search; don't spend an embedding call (or time out on Ollama).
+        status = "knowledge base empty — upload policies via POST /knowledge/upload"
+    else:
+        try:
+            passages = RAGStore(db).search(query, top_k=5)
+        except Exception as e:
+            status = f"search failed: {type(e).__name__}: {e}"
 
-    trace = {**state.get("agent_trace", {}), "rag_evidence_retriever": f"found {len(passages)} passages"}
+    trace = {
+        **state.get("agent_trace", {}),
+        "rag_evidence_retriever": status or f"found {len(passages)} passages",
+    }
     return {**state, "evidence_passages": passages, "agent_trace": trace}
 
 
@@ -257,6 +333,17 @@ def risk_assessor(state: FraudAnalysisState, db: Session) -> FraudAnalysisState:
 
     flags_text = "\n".join(ctx.get("deterministic_flags", [])[:5]) or "None"
 
+    ml_prob = ctx.get("ml_fraud_probability")
+    ml_text = f"{ml_prob:.0%}" if ml_prob is not None else "not available"
+    vc = state.get("vendor_context") or {}
+    vendor_text = (
+        "No vendor linked to this invoice."
+        if vc.get("is_unknown") else
+        f"- {vc.get('vendor_name')}: {vc.get('total_invoices', 0)} prior invoices, "
+        f"average amount {vc.get('average_amount', 0):.2f}, "
+        f"this invoice is {vc.get('current_vs_avg_ratio') or 'n/a'}x the average"
+    )
+
     prompt = f"""You are a financial fraud risk assessor. Analyze this invoice and assign a risk score.
 
 INVOICE SUMMARY:
@@ -276,6 +363,10 @@ RELEVANT POLICY EVIDENCE:
 {evidence_text}
 
 DETERMINISTIC RISK SCORE: {det_score}/100
+TRAINED MODEL FRAUD PROBABILITY: {ml_text}
+
+VENDOR CONTEXT:
+{vendor_text}
 
 Based on all evidence above, provide an AI risk score from 0-100.
 Consider:
@@ -286,16 +377,22 @@ Consider:
 
 Respond with ONLY a number between 0 and 100. Nothing else."""
 
+    provider = None
     try:
-        ai_score_raw = _call_gemini(prompt).split()[0]
-        ai_score = min(100.0, max(0.0, float(ai_score_raw)))
+        reply, provider = _call_llm(prompt)
+        ai_score = _parse_score(reply)
     except Exception as e:
-        print(f"[GEMINI ERROR in risk_assessor] {type(e).__name__}: {e}")
-        ai_score = det_score  # fallback to deterministic
+        print(f"[LLM ERROR in risk_assessor] {type(e).__name__}: {e}")
+        ai_score = None
 
-    final_score = round(
-        (det_score * DETERMINISTIC_WEIGHT) + (ai_score * AI_WEIGHT), 2
-    )
+    if ai_score is None:
+        # No LLM opinion: report the deterministic score as-is rather than
+        # pretending an AI score equal to it was produced.
+        final_score = round(det_score, 2)
+    else:
+        final_score = round(
+            (det_score * DETERMINISTIC_WEIGHT) + (ai_score * AI_WEIGHT), 2
+        )
 
     if final_score >= 75:
         risk_level = "CRITICAL"
@@ -312,6 +409,7 @@ Respond with ONLY a number between 0 and 100. Nothing else."""
             "ai_score": ai_score,
             "det_score": det_score,
             "final_score": final_score,
+            "llm_provider": provider or "unavailable",
         },
     }
 
@@ -322,6 +420,29 @@ Respond with ONLY a number between 0 and 100. Nothing else."""
         "risk_level": risk_level,
         "agent_trace": trace,
     }
+
+
+def _fallback_explanation(ctx: dict, signals: list, risk_level: str, final_score: float) -> str:
+    """Evidence-based summary used when no LLM is reachable."""
+    flags = ctx.get("deterministic_flags", [])
+    parts = [f"Risk level {risk_level} ({final_score}/100), based on the rule engine"]
+    if ctx.get("ml_fraud_probability") is not None:
+        parts[0] += f" and the trained model ({ctx['ml_fraud_probability']:.0%} fraud probability)"
+    parts[0] += "; no LLM was reachable, so this summary is generated without one."
+    if flags:
+        parts.append("Signals: " + "; ".join(f.split(" — ")[0] for f in flags[:4]) + ".")
+    else:
+        parts.append("No rule-based fraud signals were raised.")
+    extra = [s["detail"] for s in signals if s["signal"] not in " ".join(flags)]
+    if extra:
+        parts.append("Also noted: " + "; ".join(extra[:2]) + ".")
+    if risk_level in ("HIGH", "CRITICAL"):
+        parts.append("Recommendation: hold payment and verify with the vendor before approving.")
+    elif risk_level == "MEDIUM":
+        parts.append("Recommendation: review the flagged items before approving.")
+    else:
+        parts.append("Recommendation: no blocking issues found; standard approval applies.")
+    return " ".join(parts)
 
 
 # ── Agent 7: Explanation Writer ───────────────────────────────────────────────
@@ -371,15 +492,10 @@ POLICY EVIDENCE:
 Write the analysis report now:"""
 
     try:
-        explanation = _call_gemini(prompt)
+        explanation, _ = _call_llm(prompt)
     except Exception as e:
-        print(f"[GEMINI ERROR in explanation_writer] {type(e).__name__}: {e}")
-        explanation = (
-            f"Automated analysis completed. Risk level: {risk_level} "
-            f"(score: {final_score}/100). "
-            f"{len(ctx.get('deterministic_flags', []))} fraud signals detected. "
-            f"Human review recommended."
-        )
+        print(f"[LLM ERROR in explanation_writer] {type(e).__name__}: {e}")
+        explanation = _fallback_explanation(ctx, signals, risk_level, final_score)
 
     trace = {**state.get("agent_trace", {}), "explanation_writer": "completed"}
     return {**state, "ai_explanation": explanation, "agent_trace": trace}

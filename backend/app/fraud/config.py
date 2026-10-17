@@ -40,7 +40,10 @@ class FraudConfig:
     ROUND_NUMBER_DETECTION = True  # Flag suspiciously round amounts
 
     # Tax Validation
-    VALID_GST_RATES = [0.00, 0.025, 0.05, 0.06, 0.09, 0.12, 0.14, 0.18, 0.28]  # Valid GST rates incl. CGST/SGST splits
+    # Total GST rates (the parser sums CGST + SGST, so half rates such as 9%
+    # are not valid totals): 0.25% rough diamonds, 3% gold/silver, then the
+    # standard slabs. The half rates that used to be listed hid e.g. 15%.
+    VALID_GST_RATES = [0.00, 0.0025, 0.03, 0.05, 0.12, 0.18, 0.28]
     TAX_CALCULATION_TOLERANCE = Decimal("2.00")  # ₹2 tolerance for rounding differences
 
     # Date Validation

@@ -23,7 +23,8 @@ if DATABASE_URL.startswith("sqlite"):
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    # SQL_ECHO=true logs every statement; off by default because it floods the server log.
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
     connect_args=connect_args,
 )
 

@@ -34,7 +34,7 @@ uvicorn==0.52.4
 
 # Fraud Detection Dependencies
 pgvector==0.3.6
-numpy==1.26.4
+numpy==2.2.6
 python-dateutil==2.9.0
 
 # OCR Dependencies (requires: sudo apt install -y tesseract-ocr)
@@ -52,3 +52,10 @@ langgraph-checkpoint==2.1.2
 langgraph-sdk==0.1.74
 tiktoken==0.8.0
 ollama==0.6.3
+
+# Optional cloud LLM (used by app/ai/agents.py when GEMINI_API_KEY is set)
+google-genai==1.21.1
+
+# ML fraud model (app/ml)
+scikit-learn==1.6.1
+joblib==1.5.1

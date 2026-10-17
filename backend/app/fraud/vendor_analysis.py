@@ -7,7 +7,7 @@ Analyzes vendor risk based on historical patterns and rejection rates.
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, true
 from sqlalchemy.orm import Session
 
 from app.fraud.config import FraudConfig
@@ -16,7 +16,9 @@ from app.models.invoice import Invoice, InvoiceStatus
 from app.models.vendor import Vendor
 
 
-def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
+def _get_vendor_invoice_stats(
+    db: Session, vendor_id: int, exclude_invoice_id: Optional[int] = None
+) -> dict:
     """
     Calculate vendor statistics from invoice history.
     
@@ -28,9 +30,11 @@ def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
         Dict with vendor statistics
     """
     # Get all invoices for this vendor
-    invoices = db.query(Invoice).filter(
-        Invoice.vendor_id == vendor_id
-    ).all()
+    query = db.query(Invoice).filter(Invoice.vendor_id == vendor_id)
+    if exclude_invoice_id is not None:
+        # The invoice under analysis is not part of its own vendor history.
+        query = query.filter(Invoice.id != exclude_invoice_id)
+    invoices = query.all()
 
     if not invoices:
         return {
@@ -38,6 +42,7 @@ def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
             "approved_invoices": 0,
             "rejected_invoices": 0,
             "pending_invoices": 0,
+            "reviewed_invoices": 0,
             "rejection_rate": 0.0,
             "average_amount": None,
             "is_new_vendor": True,
@@ -49,14 +54,19 @@ def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
         inv for inv in invoices
         if inv.status == InvoiceStatus.DECIDED.value
     ]
-    
-    # For rejection rate calculation, we need to know which decided invoices were rejected
-    # Since the current schema doesn't have a separate rejection field,
-    # we'll use a heuristic: invoices that went to DECIDED but don't have approval
-    # For now, we'll calculate based on status transitions (would need approval tracking)
-    
-    approved = 0  # Placeholder - would need approval field
-    rejected = 0  # Placeholder - would need rejection field
+
+    # Approvals / rejections come from the human review decisions.
+    from app.models.invoice_review import InvoiceReview
+    decisions = dict(
+        db.query(InvoiceReview.decision, func.count(InvoiceReview.id))
+        .join(Invoice, Invoice.id == InvoiceReview.invoice_id)
+        .filter(Invoice.vendor_id == vendor_id)
+        .filter(Invoice.id != exclude_invoice_id if exclude_invoice_id is not None else true())
+        .group_by(InvoiceReview.decision)
+        .all()
+    )
+    approved = decisions.get("APPROVE", 0)
+    rejected = decisions.get("REJECT", 0)
     pending = total - len(decided_invoices)
 
     # Calculate average amount
@@ -67,7 +77,9 @@ def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
     ]
     average_amount = sum(amounts) / len(amounts) if amounts else None
 
-    rejection_rate = rejected / total if total > 0 else 0.0
+    # Rate over reviewed invoices only: unreviewed ones say nothing yet.
+    reviewed = approved + rejected
+    rejection_rate = rejected / reviewed if reviewed > 0 else 0.0
 
     return {
         "total_invoices": total,
@@ -77,6 +89,7 @@ def _get_vendor_invoice_stats(db: Session, vendor_id: int) -> dict:
         "rejection_rate": rejection_rate,
         "average_amount": average_amount,
         "is_new_vendor": total < FraudConfig.NEW_VENDOR_INVOICE_THRESHOLD,
+        "reviewed_invoices": reviewed,
     }
 
 
@@ -111,7 +124,7 @@ def analyze_vendor_risk(db: Session, invoice: Invoice) -> List[FraudFlag]:
         return flags
 
     # Get vendor statistics
-    stats = _get_vendor_invoice_stats(db, invoice.vendor_id)
+    stats = _get_vendor_invoice_stats(db, invoice.vendor_id, exclude_invoice_id=invoice.id)
 
     # Only flag as new vendor if there are ZERO prior invoices.
     # Having 1-2 prior invoices is not suspicious — every vendor starts somewhere.
@@ -139,7 +152,7 @@ def analyze_vendor_risk(db: Session, invoice: Invoice) -> List[FraudFlag]:
 
     # Check for high rejection rate
     if (
-        stats["total_invoices"] >= FraudConfig.MIN_VENDOR_HISTORY and
+        stats["reviewed_invoices"] >= FraudConfig.MIN_VENDOR_HISTORY and
         stats["rejection_rate"] > FraudConfig.HIGH_REJECTION_RATE_THRESHOLD
     ):
         flags.append(
