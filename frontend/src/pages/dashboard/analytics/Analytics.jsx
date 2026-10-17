@@ -192,12 +192,12 @@ export default function Analytics() {
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false}/>
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false}/>
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false} allowDecimals={false}/>
                     <Tooltip content={<ChartTooltip/>} cursor={{ stroke: "rgba(99,102,241,0.1)", strokeWidth: 1 }}/>
                     <Line type="monotone" dataKey="Total" stroke="#ef4444" strokeWidth={2.5}
                       dot={<Dot r={3} fill="#ef4444" strokeWidth={0}/>} activeDot={{ r: 5 }}/>
-                    <Line type="monotone" dataKey="HighRisk" stroke="#818cf8" strokeWidth={2}
+                    <Line type="monotone" dataKey="HighRisk" stroke="#cf8a58" strokeWidth={2}
                       dot={false} activeDot={{ r: 4 }} strokeDasharray="4 2"/>
                   </LineChart>
                 </ResponsiveContainer>
@@ -220,7 +220,7 @@ export default function Analytics() {
                         {donutData.map((d, i) => <Cell key={i} fill={d.color}/>)}
                       </Pie>
                       <Legend iconType="circle" iconSize={8}
-                        formatter={v => <span style={{ fontSize: 11, color: "#64748b" }}>{v}</span>}/>
+                        formatter={v => <span style={{ fontSize: 11, color: "#77766a" }}>{v}</span>}/>
                       <Tooltip content={<ChartTooltip/>}/>
                     </PieChart>
                   </ResponsiveContainer>
@@ -248,8 +248,8 @@ export default function Analytics() {
                   <BarChart data={vendorData} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}
                     barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" horizontal={false}/>
-                    <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 100]}/>
-                    <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false}/>
+                    <XAxis type="number" tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false} domain={[0, 100]}/>
+                    <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: "#77766a" }} axisLine={false} tickLine={false}/>
                     <Tooltip content={<ChartTooltip/>} cursor={{ fill: "rgba(99,102,241,0.04)" }}/>
                     <Bar dataKey="Avg Risk" fill="#e8b84b" radius={[0, 4, 4, 0]}/>
                   </BarChart>
@@ -267,10 +267,10 @@ export default function Analytics() {
                   <BarChart data={amountData} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}
                     barCategoryGap="25%">
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false}/>
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false}/>
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false} allowDecimals={false}/>
                     <Tooltip content={<ChartTooltip/>} cursor={{ fill: "rgba(99,102,241,0.04)" }}/>
-                    <Bar dataKey="Invoices" fill="#6366f1" radius={[4, 4, 0, 0]}/>
+                    <Bar dataKey="Invoices" fill="#9fc61c" radius={[4, 4, 0, 0]}/>
                   </BarChart>
                 </ResponsiveContainer>
               )}

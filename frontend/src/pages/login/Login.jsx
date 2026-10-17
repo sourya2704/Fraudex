@@ -3,11 +3,13 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import Scene3D from "../../components/Scene3D";
 
+// What the system actually runs (see docs/ML_MODEL_REPORT.md)
 const STATS = [
-  { value: "$4.2M", label: "Fraud prevented" },
-  { value: "190K+", label: "Invoices scanned" },
-  { value: "99.3%", label: "Accuracy rate" },
+  { value: "16",  label: "Fraud rules" },
+  { value: "7",   label: "AI agents" },
+  { value: "10K", label: "Training invoices" },
 ];
 
 const FEATURES = [
@@ -50,47 +52,40 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0d1117] text-white">
+    <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b08] text-[#f1eee3]">
+      {/* live 3D scanner spanning the page: invoices orbit through the beam, flagged ones flash */}
+      <Scene3D variant="hero" className="absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_50%,transparent,rgba(11,11,8,0.7))]" />
 
       {/* ── LEFT  HERO ─────────────────────────────────────────────────── */}
-      <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
-
-        {/* background gradient blobs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl"/>
-          <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-violet-600/15 blur-3xl"/>
-          <div className="absolute inset-0 opacity-[0.04]"
-            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
-        </div>
+      <div className="login-hero relative z-10 hidden w-[54%] flex-col justify-between overflow-hidden p-12 lg:flex">
 
         {/* logo */}
         <div className="relative flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">
-            <ShieldCheck size={20} strokeWidth={2.2} />
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c4ef3a] text-[#11110c] shadow-[0_0_30px_rgba(196,239,58,0.45)]">
+            <ShieldCheck size={20} strokeWidth={2.4} />
           </div>
-          <span className="text-lg font-bold tracking-tight">Fraudex</span>
+          <span className="font-display text-xl font-extrabold tracking-tight">Frau<span className="text-[#c4ef3a]">Dex</span></span>
         </div>
 
         {/* center content */}
-        <div className="relative">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-            AI-Powered Fraud Detection
+        <div className="relative max-w-md">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#c4ef3a]/30 bg-[#c4ef3a]/10 px-4 py-1.5 font-mono-num text-[11px] uppercase tracking-[0.18em] text-[#d3f55f] backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#c4ef3a]" style={{ animation: "pulse-ring 1.6s ease-out infinite" }} />
+            Scanning invoices
           </div>
-          <h1 className="text-5xl font-bold leading-[1.12] tracking-tight">
-            Detect invoice<br />
-            <span className="text-indigo-300">
-              fraud instantly
-            </span>
+          <h1 className="text-6xl font-extrabold leading-[0.98] tracking-tight">
+            Every invoice<br />
+            <span className="gradient-text">under the lens.</span>
           </h1>
-          <p className="mt-5 max-w-sm text-base leading-7 text-slate-400">
-            Intelligent validation, historical analysis, and AI reasoning — all in one workspace.
+          <p className="mt-6 max-w-sm text-base leading-7 text-[#b3b0a1]">
+            Rules, a trained fraud model and AI agents read every line, then show you the evidence before you approve.
           </p>
 
-          <ul className="mt-8 space-y-4">
+          <ul className="mt-8 space-y-3.5">
             {FEATURES.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm text-slate-300">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-indigo-500/15 text-indigo-400">
+              <li key={text} className="flex items-center gap-3 text-sm text-[#d9d6c9]">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[#c4ef3a]/25 bg-[#c4ef3a]/10 text-[#c4ef3a]">
                   <Icon size={14} strokeWidth={2} />
                 </span>
                 {text}
@@ -101,31 +96,31 @@ export default function Login() {
           {/* stats */}
           <div className="mt-10 grid grid-cols-3 gap-3">
             {STATS.map(({ value, label }) => (
-              <div key={label} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                <p className="text-xl font-bold text-white">{value}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">{label}</p>
+              <div key={label} data-tilt className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 backdrop-blur-md">
+                <p className="font-display text-3xl font-extrabold text-[#f1eee3]">{value}</p>
+                <p className="mt-0.5 font-mono-num text-[10px] uppercase tracking-[0.14em] text-[#9b9a8b]">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative text-xs text-slate-600">© 2026 Fraudex. Evidence-first decisions.</p>
+        <p className="relative font-mono-num text-[11px] tracking-wider text-[#57554b]">© 2026 FRAUDEX · EVIDENCE-FIRST DECISIONS</p>
       </div>
 
       {/* ── RIGHT  FORM ────────────────────────────────────────────────── */}
-      <div className="flex flex-1 items-center justify-center bg-[var(--bg-base)] p-8 lg:p-16">
-        <div className="w-full max-w-[400px]">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-8 lg:p-16">
+        <div className="glass-card w-full max-w-[440px] p-8 sm:p-10" style={{ animation: "rise 0.8s cubic-bezier(0.2,0.8,0.2,1) backwards" }}>
 
           {/* mobile logo */}
           <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-600">
-              <ShieldCheck size={18} strokeWidth={2.2} className="text-white" />
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#c4ef3a] text-[#11110c]">
+              <ShieldCheck size={18} strokeWidth={2.4} />
             </div>
             <span className="text-lg font-bold text-slate-900">Fraudex</span>
           </div>
 
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-indigo-500">Welcome back</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Sign in to Fraudex</h2>
+          <p className="font-mono-num text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-500">Welcome back</p>
+          <h2 className="mt-2 text-4xl font-extrabold tracking-tight text-slate-900">Sign in to FrauDex</h2>
           <p className="mt-2 text-sm text-slate-500">Enter your credentials to continue.</p>
 
           <form className="mt-8 space-y-4" onSubmit={onSubmit} noValidate>
