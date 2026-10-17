@@ -90,13 +90,13 @@ export default function Signup() {
   }
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b08] text-[#f1eee3]">
+    <div className="auth-page relative flex min-h-screen overflow-hidden">
       {/* live 3D scanner spanning the page: invoices orbit through the beam, flagged ones flash */}
       <Scene3D variant="hero" className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_50%,transparent,rgba(11,11,8,0.7))]" />
+      <div className="auth-vignette pointer-events-none absolute inset-0" />
 
       {/* ── LEFT HERO ──────────────────────────────────────────────────── */}
-      <div className="relative z-10 hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
+      <div className="auth-hero relative z-10 hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
 
         <div className="relative flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">

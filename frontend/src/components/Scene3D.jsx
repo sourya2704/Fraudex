@@ -16,8 +16,9 @@ import { useEffect, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 
 const PALETTE = {
-  dark:  { ink: 0x16160f, edge: 0xc4ef3a, bronze: 0xd08a52, flag: 0xff4d5e, dust: 0xe8e4d6, card: "#1d1c17", cardLine: "#5a594d" },
-  light: { ink: 0xe9e6dc, edge: 0x5f7d0b, bronze: 0x9a552a, flag: 0xd61f45, dust: 0x45443c, card: "#fbfaf6", cardLine: "#c2c1b4" },
+  dark:  { ink: 0x16160f, edge: 0xc4ef3a, bronze: 0xd08a52, flag: 0xff4d5e, dust: 0xe8e4d6, card: "#1d1c17", cardLine: "#5a594d", cardEdge: "#c4ef3a", lines: 1,   ambientKey: 1.4 },
+  // Light mode: a dark glossy crystal with olive-lime edges reads as solid 3D on bone
+  light: { ink: 0x23221c, edge: 0x7ea312, bronze: 0xb86a37, flag: 0xd61f45, dust: 0x5b5a50, card: "#fffefb", cardLine: "#c2c1b4", cardEdge: "#6f8f0f", lines: 1.8, ambientKey: 2.2 },
 };
 
 function invoiceTexture(THREE, colors, flagged) {
@@ -26,12 +27,12 @@ function invoiceTexture(THREE, colors, flagged) {
   const g = c.getContext("2d");
   g.fillStyle = colors.card;
   g.beginPath(); g.roundRect(2, 2, 124, 172, 10); g.fill();
-  g.strokeStyle = flagged ? "#ff4d5e" : "#c4ef3a";
+  g.strokeStyle = flagged ? "#ff4d5e" : colors.cardEdge;
   g.lineWidth = 3; g.stroke();
   g.fillStyle = colors.cardLine;
   g.fillRect(14, 18, 54, 9);                       // vendor name
   for (let i = 0; i < 6; i++) g.fillRect(14, 48 + i * 16, 100 - (i % 3) * 18, 5); // line items
-  g.fillStyle = flagged ? "#ff4d5e" : "#c4ef3a";
+  g.fillStyle = flagged ? "#ff4d5e" : colors.cardEdge;
   g.fillRect(70, 150, 44, 10);                     // total
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -45,7 +46,7 @@ function buildScene(THREE, variant, colors) {
   const animated = [];
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-  const key = new THREE.DirectionalLight(0xffffff, 1.4);
+  const key = new THREE.DirectionalLight(0xffffff, colors.ambientKey);
   key.position.set(3, 4, 5);
   scene.add(key);
   const rim = new THREE.PointLight(colors.bronze, 18, 12);
@@ -67,7 +68,7 @@ function buildScene(THREE, variant, colors) {
     }));
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(geo),
-      new THREE.LineBasicMaterial({ color: colors.edge, transparent: true, opacity: 0.9 }),
+      new THREE.LineBasicMaterial({ color: colors.edge, transparent: true, opacity: Math.min(1, 0.9 * colors.lines) }),
     );
     crystal.add(edges);
     group.add(crystal);
@@ -82,7 +83,7 @@ function buildScene(THREE, variant, colors) {
     const rings = [1.75, 2.15, 2.6].map((r, i) => {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(r, i === 1 ? 0.012 : 0.006, 8, 160),
-        new THREE.MeshBasicMaterial({ color: i === 1 ? colors.bronze : colors.edge, transparent: true, opacity: 0.55 }),
+        new THREE.MeshBasicMaterial({ color: i === 1 ? colors.bronze : colors.edge, transparent: true, opacity: Math.min(1, 0.55 * colors.lines) }),
       );
       ring.rotation.x = Math.PI / 2 + i * 0.35;
       ring.rotation.y = i * 0.6;
@@ -142,20 +143,25 @@ function buildScene(THREE, variant, colors) {
       }
     });
   } else {
-    // Ambient: a large slow lattice sitting off to the side
+    // Ambient: a large slow lattice. Only lines here: they stay crisp behind
+    // frosted cards, where a solid shape blurs into a smudge.
     const geo = new THREE.IcosahedronGeometry(3.2, 1);
     const lattice = new THREE.LineSegments(
       new THREE.EdgesGeometry(geo),
-      new THREE.LineBasicMaterial({ color: colors.edge, transparent: true, opacity: 0.16 }),
+      new THREE.LineBasicMaterial({ color: colors.edge, transparent: true, opacity: 0.16 * colors.lines }),
     );
     lattice.position.set(3.6, -0.8, -2);
     group.add(lattice);
     const inner = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.OctahedronGeometry(1.6, 0)),
-      new THREE.LineBasicMaterial({ color: colors.bronze, transparent: true, opacity: 0.22 }),
+      new THREE.LineBasicMaterial({ color: colors.bronze, transparent: true, opacity: 0.22 * colors.lines }),
     );
     inner.position.copy(lattice.position);
     group.add(inner);
+
+    glow.position.copy(lattice.position);
+    rim.position.set(lattice.position.x - 2.5, lattice.position.y - 1, 1);
+
     animated.push((t) => {
       lattice.rotation.y = t * 0.05;
       lattice.rotation.x = t * 0.03;
