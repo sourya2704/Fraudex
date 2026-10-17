@@ -20,14 +20,16 @@ class FraudDetector:
     the results into a comprehensive fraud detection result.
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, use_ml: bool = True):
         """
         Initialize fraud detector.
         
         Args:
             db: Database session for queries
+            use_ml: Include the trained model's ML_FRAUD_PATTERN check
         """
         self.db = db
+        self.use_ml = use_ml
 
     def detect_fraud(self, invoice: Invoice) -> FraudDetectionResult:
         """
@@ -42,7 +44,11 @@ class FraudDetector:
         result = FraudDetectionResult(invoice_id=invoice.id)
 
         # Import check modules
-        from app.fraud.duplicate import check_duplicate_invoice, check_similar_invoice
+        from app.fraud.duplicate import (
+            check_duplicate_invoice,
+            check_duplicate_document,
+            check_similar_invoice,
+        )
         from app.fraud.vendor_analysis import analyze_vendor_risk, analyze_vendor_history
         from app.fraud.anomaly import (
             detect_amount_anomaly,
@@ -63,10 +69,13 @@ class FraudDetector:
             check_back_dated_invoice,
         )
 
+        from app.ml.model import ml_fraud_flag
+
         # Run all checks and collect flags
         checks = [
             # Duplicate detection
             lambda: check_duplicate_invoice(self.db, invoice),
+            lambda: check_duplicate_document(self.db, invoice),
             lambda: check_similar_invoice(self.db, invoice),
             
             # Vendor analysis
@@ -90,6 +99,9 @@ class FraudDetector:
             lambda: check_very_old_invoice(invoice),
             lambda: check_due_date_anomaly(invoice),
             lambda: check_back_dated_invoice(invoice),
+
+            # Trained model (scripts/train_fraud_model.py); no-op if not trained
+            lambda: ml_fraud_flag(self.db, invoice) if self.use_ml else None,
         ]
 
         for check in checks:
