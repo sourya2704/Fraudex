@@ -27,9 +27,9 @@ const NAV = [
 ];
 
 const ROLE_COLOR = {
-  ADMIN:           "bg-rose-600",
-  FINANCE_MANAGER: "bg-violet-600",
-  EMPLOYEE:        "bg-indigo-600",
+  ADMIN:           "bg-[#cf8a58] text-[#11110c]",
+  FINANCE_MANAGER: "bg-violet-600 text-white",
+  EMPLOYEE:        "bg-[#c4ef3a] text-[#11110c]",
 };
 const ROLE_LABEL = {
   ADMIN: "Admin", FINANCE_MANAGER: "Finance Mgr", EMPLOYEE: "Employee",
@@ -53,11 +53,10 @@ export default function Sidebar({ expanded = true }) {
 
   return (
     <aside
-      style={{ background: "linear-gradient(180deg,#0f1219 0%,#0f1827 100%)" }}
       className={`
-        sticky top-0 flex h-screen max-h-screen shrink-0 flex-col
-        border-r border-white/[0.05] px-3 py-5 text-slate-300
-        shadow-[6px_0_40px_rgba(0,0,0,0.4)]
+        sidebar sticky top-0 flex h-screen max-h-screen shrink-0 flex-col
+        border-r border-white/[0.06] px-3 py-5 text-slate-300
+        shadow-[10px_0_50px_rgba(0,0,0,0.45)]
         transition-[width] duration-200 ease-out
         ${expanded ? "w-60" : "w-[68px] hover:z-20 hover:w-60"}
       `}
@@ -66,23 +65,23 @@ export default function Sidebar({ expanded = true }) {
         to="/dashboard"
         className={`flex items-center gap-3 px-2 ${expanded ? "justify-start" : "justify-center"}`}
       >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#c7f36b]/10 ring-1 ring-[#c7f36b]/40 shadow-[0_0_18px_rgba(199,243,107,0.18)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#c4ef3a]/10 ring-1 ring-[#c4ef3a]/40 shadow-[0_0_22px_rgba(196,239,58,0.25)]" style={{ animation: "float-y 4s ease-in-out infinite" }}>
           <img src={logoSvg} alt="FrauDex logo" className="h-6 w-6" />
         </span>
         <div
           className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-out ${expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"}`}
         >
-          <strong className="block text-lg font-bold tracking-tight text-white leading-none">
-            Frau<span className="text-[#c7f36b]">Dex</span>
+          <strong className="font-display block text-lg font-extrabold tracking-tight text-[#f1eee3] leading-none">
+            Frau<span className="text-[#c4ef3a]">Dex</span>
           </strong>
-          <span className="text-[10px] font-medium tracking-widest text-slate-500 uppercase">
-            Fraud Detection
+          <span className="font-mono-num text-[9px] font-medium tracking-[0.22em] text-[#7d7b6e] uppercase">
+            Invoice forensics
           </span>
         </div>
       </Link>
 
       {/* ── Section label ─────────────────────────────────────────── */}
-      <div className={`mt-7 mb-1.5 overflow-hidden whitespace-nowrap px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700 transition-[max-width,opacity] duration-200 ${expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"}`}>
+      <div className={`mt-7 mb-1.5 overflow-hidden whitespace-nowrap px-3 font-mono-num text-[9px] font-semibold uppercase tracking-[0.22em] text-[#57554b] transition-[max-width,opacity] duration-200 ${expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"}`}>
         Main Menu
       </div>
 
@@ -97,21 +96,21 @@ export default function Sidebar({ expanded = true }) {
                 transition-all duration-150
                 ${expanded ? "gap-3" : "justify-center gap-0"}
                 ${active
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"}
+                  ? "sidebar-link-active font-semibold"
+                  : "text-[#a19e8f] hover:bg-white/[0.05] hover:text-[#f1eee3] hover:translate-x-0.5"}
               `}
             >
               <div className="relative shrink-0">
                 <Icon size={18} strokeWidth={1.9} />
                 {badge && !active && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-1 ring-[#0f1219]" />
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-1 ring-[#12120e]" />
                 )}
               </div>
               <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${expanded ? "max-w-36 opacity-100" : "max-w-0 opacity-0"}`}>
                 {label}
               </span>
               {active && (
-                <span className="absolute -left-3 top-2 bottom-2 w-1 rounded-r-full bg-white/40" />
+                <span className="absolute -left-3 top-2 bottom-2 w-1 rounded-r-full bg-[#c4ef3a] shadow-[0_0_12px_rgba(196,239,58,0.8)]" />
               )}
             </Link>
           );
@@ -129,7 +128,7 @@ export default function Sidebar({ expanded = true }) {
                 {avatar ? (
                   <img src={avatar} alt="avatar" className="h-8 w-8 shrink-0 rounded-lg object-cover shadow" />
                 ) : (
-                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${gradient} text-xs font-bold text-white shadow`}>
+                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${gradient} text-xs font-bold shadow`}>
                     {initials}
                   </div>
                 )}
@@ -142,7 +141,7 @@ export default function Sidebar({ expanded = true }) {
               avatar ? (
                 <img src={avatar} alt="avatar" className="h-8 w-8 rounded-lg object-cover shadow" />
               ) : (
-                <div className={`grid h-8 w-8 place-items-center rounded-lg ${gradient} text-xs font-bold text-white shadow`}>
+                <div className={`grid h-8 w-8 place-items-center rounded-lg ${gradient} text-xs font-bold shadow`}>
                   {initials}
                 </div>
               )

@@ -10,6 +10,7 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Scene3D from "./Scene3D";
 
 export default function ProtectedRoute({ allowedRoles }) {
   const { user, loading } = useAuth();
@@ -18,9 +19,9 @@ export default function ProtectedRoute({ allowedRoles }) {
   // Still checking saved token — show nothing (or a spinner)
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f4f5f0]">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#c7f36b] text-[#151a31] text-xl shadow-lg">
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#c4ef3a] text-[#11110c] text-xl shadow-lg" style={{ animation: "float-y 1.6s ease-in-out infinite" }}>
             ✦
           </span>
           <p className="text-sm font-medium text-slate-500">Loading…</p>
@@ -39,5 +40,11 @@ export default function ProtectedRoute({ allowedRoles }) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Outlet />;
+  // The ambient 3D scene lives here so it persists across page navigation.
+  return (
+    <>
+      <Scene3D variant="ambient" />
+      <Outlet />
+    </>
+  );
 }

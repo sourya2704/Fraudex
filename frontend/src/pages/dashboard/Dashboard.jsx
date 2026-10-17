@@ -110,8 +110,8 @@ function InvoiceAreaChart({ trends }) {
       <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="colorAnalyzed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.15}/>
-            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+            <stop offset="5%"  stopColor="#9fc61c" stopOpacity={0.15}/>
+            <stop offset="95%" stopColor="#9fc61c" stopOpacity={0}/>
           </linearGradient>
           <linearGradient id="colorHighRisk" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.12}/>
@@ -119,10 +119,10 @@ function InvoiceAreaChart({ trends }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false}/>
-        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
-        <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false}/>
+        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false}/>
+        <YAxis tick={{ fontSize: 10, fill: "#9b9a8b" }} axisLine={false} tickLine={false} allowDecimals={false}/>
         <Tooltip content={<CustomTooltip/>} cursor={{ stroke: "rgba(99,102,241,0.15)", strokeWidth: 1 }}/>
-        <Area type="monotone" dataKey="Analyzed" stroke="#6366f1" strokeWidth={2} fill="url(#colorAnalyzed)" dot={false}/>
+        <Area type="monotone" dataKey="Analyzed" stroke="#9fc61c" strokeWidth={2} fill="url(#colorAnalyzed)" dot={false}/>
         <Area type="monotone" dataKey="HighRisk"  stroke="#ef4444" strokeWidth={2} fill="url(#colorHighRisk)" dot={false}/>
       </AreaChart>
     </ResponsiveContainer>
@@ -147,8 +147,8 @@ function FraudDonut({ stats }) {
 
   const CustomLabel = ({ cx, cy }) => (
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
-      <tspan x={cx} dy="-6" fontSize="22" fontWeight="700" fill="#0f1117">{total}</tspan>
-      <tspan x={cx} dy="20" fontSize="11" fill="#94a3b8">analyzed</tspan>
+      <tspan x={cx} dy="-6" fontSize="22" fontWeight="700" style={{ fill: "var(--text-primary)" }}>{total}</tspan>
+      <tspan x={cx} dy="20" fontSize="11" fill="#9b9a8b">analyzed</tspan>
     </text>
   );
 
@@ -161,7 +161,7 @@ function FraudDonut({ stats }) {
         </Pie>
         <Legend
           iconType="circle" iconSize={8}
-          formatter={(value) => <span style={{ fontSize: 11, color: "#64748b" }}>{value}</span>}
+          formatter={(value) => <span style={{ fontSize: 11, color: "#77766a" }}>{value}</span>}
         />
         <Tooltip formatter={(v, n) => [v, n]}
           contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}/>

@@ -2,6 +2,7 @@ import { ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-reac
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import apiClient, { apiError } from "../../api/client";
+import Scene3D from "../../components/Scene3D";
 
 /* ── tiny spinner ─────────────────────────────────────────────────────────── */
 function Spinner() {
@@ -44,6 +45,51 @@ function Steps({ current }) {
       })}
     </div>
   );
+}
+
+/* ── Left hero panel: defined at module level so the 3D scene isn't
+      re-created on every keystroke ──────────────────────────────────── */
+function Hero() {
+  return (
+  <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden bg-[#0b0b08] p-12 lg:flex">
+    <Scene3D variant="hero" className="absolute inset-0 opacity-70" />
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_30%_70%,transparent,rgba(11,11,8,0.8))]" />
+    <div className="relative flex items-center gap-3">
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">
+        <ShieldCheck size={20} strokeWidth={2.2}/>
+      </div>
+      <span className="text-lg font-bold tracking-tight text-white">Fraudex</span>
+    </div>
+    <div className="relative">
+      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300">
+        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400"/>
+        Secure Account Recovery
+      </div>
+      <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">
+        Recover your<br/>
+        <span className="text-indigo-300">account safely</span>
+      </h1>
+      <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">
+        Enter your registered email. We'll send a one-time code to verify your identity and let you set a new password.
+      </p>
+      <div className="mt-8 space-y-3">
+        {[
+          { Icon: Mail,     text: "Request a 6-digit OTP for your email"  },
+          { Icon: KeyRound, text: "Enter the OTP to verify your identity"  },
+          { Icon: ShieldCheck,text:"Set a new secure password"             },
+        ].map(({ Icon, text }) => (
+          <div key={text} className="flex items-center gap-3 text-sm text-slate-300">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-indigo-500/15 text-indigo-400">
+              <Icon size={14}/>
+            </span>
+            {text}
+          </div>
+        ))}
+      </div>
+    </div>
+    <p className="relative text-xs text-slate-600">© 2026 Fraudex. Evidence-first decisions.</p>
+  </div>
+);
 }
 
 export default function ForgotPassword() {
@@ -97,51 +143,9 @@ export default function ForgotPassword() {
     }
   }
 
-  /* ── Left hero panel (shared with Login) ─────────────────────────────── */
-  const Hero = () => (
-    <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex"
-      style={{ background: "linear-gradient(135deg, #0f1219 0%, #0f1827 100%)" }}>
-      <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "60px 60px" }}/>
-      <div className="relative flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">
-          <ShieldCheck size={20} strokeWidth={2.2}/>
-        </div>
-        <span className="text-lg font-bold tracking-tight text-white">Fraudex</span>
-      </div>
-      <div className="relative">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-indigo-400"/>
-          Secure Account Recovery
-        </div>
-        <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">
-          Recover your<br/>
-          <span className="text-indigo-300">account safely</span>
-        </h1>
-        <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">
-          Enter your registered email. We'll send a one-time code to verify your identity and let you set a new password.
-        </p>
-        <div className="mt-8 space-y-3">
-          {[
-            { Icon: Mail,     text: "Request a 6-digit OTP for your email"  },
-            { Icon: KeyRound, text: "Enter the OTP to verify your identity"  },
-            { Icon: ShieldCheck,text:"Set a new secure password"             },
-          ].map(({ Icon, text }) => (
-            <div key={text} className="flex items-center gap-3 text-sm text-slate-300">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-indigo-500/15 text-indigo-400">
-                <Icon size={14}/>
-              </span>
-              {text}
-            </div>
-          ))}
-        </div>
-      </div>
-      <p className="relative text-xs text-slate-600">© 2026 Fraudex. Evidence-first decisions.</p>
-    </div>
-  );
 
   return (
-    <div className="flex min-h-screen bg-[#0d1117] text-white">
+    <div className="flex min-h-screen bg-[#0b0b08] text-[#f1eee3]">
       <Hero/>
 
       {/* right panel */}

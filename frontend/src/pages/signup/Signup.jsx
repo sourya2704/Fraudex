@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import apiClient, { apiError } from "../../api/client";
+import Scene3D from "../../components/Scene3D";
 import { useAuth } from "../../context/AuthContext";
 
 function getStrength(pwd) {
@@ -89,16 +90,12 @@ export default function Signup() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0d1117] text-white">
+    <div className="flex min-h-screen bg-[#0b0b08] text-[#f1eee3]">
 
       {/* ── LEFT HERO ──────────────────────────────────────────────────── */}
       <div className="relative hidden w-[52%] flex-col justify-between overflow-hidden p-12 lg:flex">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 -right-20 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl"/>
-          <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-indigo-600/15 blur-3xl"/>
-          <div className="absolute inset-0 opacity-[0.04]"
-            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
-        </div>
+        <Scene3D variant="hero" className="absolute inset-0 opacity-80" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_30%_70%,transparent,rgba(11,11,8,0.8))]" />
 
         <div className="relative flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600">

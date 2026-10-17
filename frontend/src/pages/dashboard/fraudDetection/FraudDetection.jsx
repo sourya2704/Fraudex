@@ -112,7 +112,7 @@ function FraudSignals({ signals }) {
     <div className="flex h-52 items-center justify-center text-xs text-slate-400">No signals recorded</div>
   );
   const max = signals[0]?.count || 1;
-  const colors = ["#6366f1","#8b5cf6","#06b6d4","#f59e0b","#ef4444","#22c55e"];
+  const colors = ["#9fc61c","#cf8a58","#7a8fa1","#e0b13a","#ff4d5e","#3fbf74"];
   return (
     <div className="space-y-3">
       {signals.slice(0, 7).map((ft, i) => (

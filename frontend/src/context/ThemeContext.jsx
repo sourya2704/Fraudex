@@ -3,11 +3,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [dark, setDark] = useState(() => localStorage.getItem("fraudex-theme") === "dark");
+  // Dark by default (the 3D scene is designed for it); an explicit choice wins.
+  const [dark, setDark] = useState(() => {
+    try { return localStorage.getItem("fraudex-theme") !== "light"; } catch { return true; }
+  });
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("fraudex-theme", dark ? "dark" : "light");
+    try { localStorage.setItem("fraudex-theme", dark ? "dark" : "light"); } catch { /* private mode */ }
   }, [dark]);
 
   const toggle = () => setDark(d => !d);
