@@ -52,13 +52,13 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b08] text-[#f1eee3]">
+    <div className="auth-page relative flex min-h-screen overflow-hidden">
       {/* live 3D scanner spanning the page: invoices orbit through the beam, flagged ones flash */}
       <Scene3D variant="hero" className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_50%,transparent,rgba(11,11,8,0.7))]" />
+      <div className="auth-vignette pointer-events-none absolute inset-0" />
 
       {/* ── LEFT  HERO ─────────────────────────────────────────────────── */}
-      <div className="login-hero relative z-10 hidden w-[54%] flex-col justify-between overflow-hidden p-12 lg:flex">
+      <div className="auth-hero relative z-10 hidden w-[54%] flex-col justify-between overflow-hidden p-12 lg:flex">
 
         {/* logo */}
         <div className="relative flex items-center gap-3">
@@ -78,13 +78,13 @@ export default function Login() {
             Every invoice<br />
             <span className="gradient-text">under the lens.</span>
           </h1>
-          <p className="mt-6 max-w-sm text-base leading-7 text-[#b3b0a1]">
+          <p className="mt-6 max-w-sm text-base leading-7 text-[var(--auth-muted)]">
             Rules, a trained fraud model and AI agents read every line, then show you the evidence before you approve.
           </p>
 
           <ul className="mt-8 space-y-3.5">
             {FEATURES.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm text-[#d9d6c9]">
+              <li key={text} className="flex items-center gap-3 text-sm text-[var(--auth-soft)]">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[#c4ef3a]/25 bg-[#c4ef3a]/10 text-[#c4ef3a]">
                   <Icon size={14} strokeWidth={2} />
                 </span>
@@ -97,14 +97,14 @@ export default function Login() {
           <div className="mt-10 grid grid-cols-3 gap-3">
             {STATS.map(({ value, label }) => (
               <div key={label} data-tilt className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 backdrop-blur-md">
-                <p className="font-display text-3xl font-extrabold text-[#f1eee3]">{value}</p>
-                <p className="mt-0.5 font-mono-num text-[10px] uppercase tracking-[0.14em] text-[#9b9a8b]">{label}</p>
+                <p className="font-display text-3xl font-extrabold text-[var(--auth-text)]">{value}</p>
+                <p className="mt-0.5 font-mono-num text-[10px] uppercase tracking-[0.14em] text-[var(--auth-faint)]">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative font-mono-num text-[11px] tracking-wider text-[#57554b]">© 2026 FRAUDEX · EVIDENCE-FIRST DECISIONS</p>
+        <p className="relative font-mono-num text-[11px] tracking-wider text-[var(--auth-faint)]">© 2026 FRAUDEX · EVIDENCE-FIRST DECISIONS</p>
       </div>
 
       {/* ── RIGHT  FORM ────────────────────────────────────────────────── */}
