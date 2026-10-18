@@ -497,9 +497,11 @@ main .bg-rose-500.rounded-full { animation: pulse-ring-alert 1.8s ease-out infin
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  SIDEBAR                                                                    */
 /* ─────────────────────────────────────────────────────────────────────────── */
+/* No `position` here: the element is `sticky top-0`, which already anchors
+   the ::before layer. Setting position: relative overrode Tailwind's sticky
+   (plain CSS beats utilities) and made the sidebar scroll away. */
 .sidebar {
   background: var(--sidebar-bg);
-  position: relative;
   isolation: isolate;
 }
 /* Faint ledger grid + lime haze behind the nav */
