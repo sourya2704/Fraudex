@@ -199,6 +199,7 @@ export default function Dashboard() {
 
   useEffect(()=>{ load(); },[]);
   const refresh = ()=>{ setRefreshing(true); load(); };
+  const hardRefresh = ()=>{ window.location.reload(); };
 
   const total    = invoices.length;
   const pending  = invoices.filter(i=>["ANALYSIS_READY","UNDER_REVIEW"].includes(i.status)).length;
@@ -221,7 +222,7 @@ export default function Dashboard() {
             <p className="text-xs text-slate-400">Live overview of your invoice pipeline</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={refresh} type="button"
+            <button onClick={hardRefresh} type="button"
               className={`grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-indigo-300 hover:text-indigo-600 ${refreshing?"animate-spin":""}`}>
               <RefreshCw size={15}/>
             </button>
