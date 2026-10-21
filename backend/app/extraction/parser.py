@@ -348,6 +348,13 @@ def parse_line_items(raw_text: str) -> list:
         if len(decimals) < _LINE_TOTAL_MIN_NUMBERS:
             continue
 
+        # The line total is money, printed with paise ("6,000.00"). Requiring
+        # that keeps addresses ("Plot 14, Sector 9 ... 201301") and invoice
+        # numbers ("NOS/2026/0007") from being read as line items, which made
+        # validation report a false subtotal mismatch.
+        if not re.search(r"\d\.\d{2}\s*$", without_pct):
+            continue
+
         description = re.split(_NUMBER_RE, without_pct)[0].strip(" \t:-|")
         if not description or not re.search(r"[A-Za-z]", description):
             continue
