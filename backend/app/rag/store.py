@@ -2,7 +2,7 @@ from typing import Optional
 import numpy as np
 from sqlalchemy.orm import Session
 from app.models.knowledge_chunk import KnowledgeChunk
-from app.rag.embeddings import embed_text, embed_texts
+from app.rag.embeddings import embed_text, embed_texts, local_embed
 from app.rag.chunker import chunk_text
 from app.rag.config import RAG_TOP_K
 
@@ -25,12 +25,15 @@ class RAGStore:
         document_name: str,
         content: str,
         source_type: str = "policy",
+        chunks: Optional[list[str]] = None,
     ) -> int:
+        """Index a document; pass `chunks` to choose the passages yourself."""
         self.db.query(KnowledgeChunk).filter(
             KnowledgeChunk.document_name == document_name
         ).delete()
 
-        chunks = chunk_text(content)
+        if chunks is None:
+            chunks = chunk_text(content)
         if not chunks:
             return 0
 
@@ -67,12 +70,25 @@ class RAGStore:
         if not all_chunks:
             return []
 
-        # Python-side cosine similarity (no pgvector SQL extension needed)
+        # Python-side cosine similarity (no pgvector SQL extension needed).
+        # Chunks indexed with the other embedder (Ollama vs local) have a
+        # different vector length; compare those on the local embedding of
+        # both texts instead of skipping them.
+        local_query = None
         scored = []
         for chunk in all_chunks:
-            if chunk.embedding:
-                sim = _cosine_similarity(query_embedding, chunk.embedding)
-                scored.append((sim, chunk))
+            vec = chunk.embedding
+            if not vec:
+                continue
+            if len(vec) == len(query_embedding):
+                sim = _cosine_similarity(query_embedding, vec)
+            else:
+                if local_query is None:
+                    local_query = local_embed(query)
+                if len(vec) != len(local_query):
+                    vec = local_embed(chunk.chunk_text)
+                sim = _cosine_similarity(local_query, vec)
+            scored.append((sim, chunk))
 
         scored.sort(key=lambda x: x[0], reverse=True)
         top = scored[:top_k]

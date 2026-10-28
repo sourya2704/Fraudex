@@ -1,4 +1,4 @@
-from app.rag.embeddings import get_embedder
+from app.rag.embeddings import embed_text, embed_texts
 from app.rag.store import RAGStore
 
-__all__ = ["get_embedder", "RAGStore"]
+__all__ = ["embed_text", "embed_texts", "RAGStore"]
