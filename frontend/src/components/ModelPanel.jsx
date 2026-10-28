@@ -38,7 +38,12 @@ export default function ModelPanel({ isAdmin }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // First load as a promise chain: setState then runs after the effect, not in it.
+  useEffect(() => {
+    apiClient.get("/ml/status")
+      .then(({ data }) => setStatus(data))
+      .catch((e) => setError(apiError(e, "Could not load the model status.")));
+  }, []);
 
   const running = status?.job?.state === "running";
   useEffect(() => {

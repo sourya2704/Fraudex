@@ -31,7 +31,15 @@ export default function BatchCheckBar({ onDone }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // First load as a promise chain: setState then runs after the effect, not in it.
+  useEffect(() => {
+    apiClient.get("/batch/fraud-check")
+      .then(({ data }) => {
+        setStatus(data);
+        wasRunning.current = data.job.state === "running";
+      })
+      .catch((e) => setError(apiError(e, "Could not load batch status.")));
+  }, []);
 
   const job = status?.job;
   const running = job?.state === "running";

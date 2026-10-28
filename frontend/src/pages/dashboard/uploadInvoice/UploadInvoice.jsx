@@ -256,7 +256,7 @@ export default function UploadInvoice() {
             </div>
             <div className="relative flex items-start gap-0 overflow-x-auto pb-2">
               <div className="absolute left-[28px] right-[28px] top-3.5 h-px bg-slate-200"/>
-              {STEPS.map((s,i)=>(
+              {STEPS.map((s)=>(
                 <div key={s.n} className="relative z-10 flex min-w-[110px] flex-1 flex-col items-center text-center">
                   <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white">
                     {s.n}
