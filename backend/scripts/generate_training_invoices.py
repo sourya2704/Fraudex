@@ -132,7 +132,9 @@ def legit_subtotal(rng: random.Random, vendor: dict, month_index: int) -> float:
     if rng.random() < 0.02:
         raw *= rng.uniform(2.0, 3.0)
     raw = min(max(raw, vendor["lo"] * 0.3), vendor["hi"] * 2)
-    return round(raw, rng.choice([0, 0, -1, -2]))
+    # Real subtotals often carry paise; whole-rupee-only legit amounts let the
+    # model learn "paise = fraud" from the threshold-splitting cases.
+    return round(raw, rng.choice([2, 2, 0, 0, -1, -2]))
 
 
 def record(vendor, number, inv_date, due_date, created_at, amt, items, is_fraud, fraud_type):
@@ -169,7 +171,16 @@ def line_items(rng: random.Random, vendor: dict, subtotal: float) -> list:
 
 
 def upload_time(rng: random.Random, inv_date: date) -> datetime:
-    lag = rng.choice([0, 1, 1, 2, 3, 5, 7, 10, 14, 21])
+    # Most invoices reach accounts payable within three weeks, but late ones
+    # are normal: lost in an inbox, disputed, or sent at quarter-end. Without
+    # this tail the model learned "uploaded late = fraud".
+    roll = rng.random()
+    if roll < 0.88:
+        lag = rng.choice([0, 1, 1, 2, 3, 5, 7, 10, 14, 21])
+    elif roll < 0.97:
+        lag = rng.randint(30, 180)
+    else:
+        lag = rng.randint(181, 540)
     return datetime.combine(inv_date + timedelta(days=lag), datetime.min.time()) + timedelta(
         hours=rng.randint(9, 19), minutes=rng.randint(0, 59)
     )
