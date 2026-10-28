@@ -28,6 +28,9 @@ from app.api.review import router as review_router
 from app.api.ai_analysis import router as ai_router
 from app.api.notifications import router as notifications_router
 from app.api.password_reset import router as password_reset_router
+from app.api.ml import router as ml_router
+from app.api.batch import router as batch_router
+from app.api.vendor_insights import router as vendor_insights_router
 
 app = FastAPI(
     title="FrauDex API",
@@ -50,6 +53,26 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
+
+def _load_policies_if_empty():
+    """First start: load the built-in policies so AI explanations can cite them."""
+    from app.database.connection import SessionLocal
+    from app.rag.default_policies import load_default_policies
+
+    db = SessionLocal()
+    try:
+        if db.query(KnowledgeChunk.id).first() is None:
+            counts = load_default_policies(db)
+            print(f"[knowledge] loaded built-in policies: {sum(counts.values())} passages")
+    except Exception as e:
+        db.rollback()
+        print(f"[knowledge] could not load built-in policies: {type(e).__name__}: {e}")
+    finally:
+        db.close()
+
+
+_load_policies_if_empty()
+
 app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(vendors_router)
@@ -59,6 +82,9 @@ app.include_router(review_router)
 app.include_router(ai_router)
 app.include_router(notifications_router)
 app.include_router(password_reset_router)
+app.include_router(ml_router)
+app.include_router(batch_router)
+app.include_router(vendor_insights_router)
 
 
 @app.get("/", tags=["Health"])

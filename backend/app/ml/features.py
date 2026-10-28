@@ -101,8 +101,10 @@ def build_features(invoice: Any, history: Iterable[Any]) -> list[float]:
     slab_distance = 0.0
     rate_deviation = 0.0
     if subtotal and tax is not None and subtotal > 0:
-        tax_rate = tax / subtotal
-        slab_distance = min(abs(tax_rate - s) for s in GST_SLABS)
+        # Rounded to 0.1%: below that it is paise rounding, not a signal, and
+        # a tree model will happily split on that noise.
+        tax_rate = round(tax / subtotal, 3)
+        slab_distance = round(min(abs(tax_rate - s) for s in GST_SLABS), 3)
         hist_rates = [
             round(_f(h.tax) / _f(h.subtotal), 2)
             for h in history
@@ -110,7 +112,7 @@ def build_features(invoice: Any, history: Iterable[Any]) -> list[float]:
         ]
         if len(hist_rates) >= 3:
             modal = statistics.mode(hist_rates)
-            rate_deviation = abs(tax_rate - modal)
+            rate_deviation = round(abs(tax_rate - modal), 3)
 
     mismatch_log = 0.0
     mismatch_ratio = 0.0

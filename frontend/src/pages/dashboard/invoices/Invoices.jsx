@@ -5,6 +5,7 @@ import apiClient, { apiError } from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import { useAuth } from "../../../context/AuthContext";
 import NotificationBell from "../../../components/NotificationBell";
+import BatchCheckBar from "../../../components/BatchCheckBar";
 
 const STATUS_STYLE = {
   DOCUMENTS_UPLOADED:"bg-blue-50 text-blue-600 border-blue-200",
@@ -119,6 +120,11 @@ export default function Invoices() {
 
         <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
 
+          {/* batch fraud check (admins and finance managers) */}
+          {(user?.role === "ADMIN" || user?.role === "FINANCE_MANAGER") && (
+            <div className="mb-5"><BatchCheckBar onDone={loadData} /></div>
+          )}
+
           {/* stat cards */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -189,7 +195,9 @@ export default function Invoices() {
                       <tr key={inv.id} className="transition hover:bg-indigo-50/30">
                         <td className="px-5 py-3.5 text-xs font-bold text-slate-400">#{displayNum}</td>
                         <td className="px-5 py-3.5 text-xs font-medium text-slate-700">{inv.invoice_number||<span className="text-slate-300">—</span>}</td>
-                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name||<span className="text-slate-300">Unknown</span>}</td>
+                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name
+                          ? <Link to={`/dashboard/vendors/${inv.vendor_id}`} className="hover:text-indigo-600 hover:underline">{inv.vendor_name}</Link>
+                          : <span className="text-slate-300">Unknown</span>}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-500">{fmt(inv.invoice_date)}</td>
                         <td className="px-5 py-3.5 text-xs font-semibold text-slate-800">{fmtAmt(inv.total_amount,inv.currency)}</td>
                         <td className="px-5 py-3.5"><Badge cls={STATUS_STYLE[inv.status]||STATUS_STYLE.DRAFT}>{STATUS_LABEL[inv.status]||inv.status}</Badge></td>

@@ -6,6 +6,7 @@ import { useAvatar } from "../../../context/AvatarContext";
 import { useTheme } from "../../../context/ThemeContext";
 import Sidebar from "../../Sidebar/Sidebar";
 import NotificationBell from "../../../components/NotificationBell";
+import ModelPanel from "../../../components/ModelPanel";
 
 const ROLE_META = {
   ADMIN:           { label: "Admin",           cls: "bg-rose-50 text-rose-600 border-rose-200",       dot: "bg-rose-500",   solidBg: "bg-rose-500"   },
@@ -370,6 +371,11 @@ export default function Settings() {
 
             </div>
           </section>
+
+          {/* ── Fraud model (admins and finance managers) ─────────── */}
+          {(authUser?.role === "ADMIN" || authUser?.role === "FINANCE_MANAGER") && (
+            <ModelPanel isAdmin={authUser?.role === "ADMIN"} />
+          )}
 
           {/* footer */}
           <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-400">

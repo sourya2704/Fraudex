@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Building2,
   FileText,
   FileUp,
   LogOut,
@@ -20,6 +21,7 @@ const NAV = [
   { label: "Dashboard",       Icon: LayoutDashboard, href: "/dashboard" },
   { label: "Upload Invoice",  Icon: FileUp,           href: "/dashboard/upload-invoice" },
   { label: "Invoices",        Icon: FileText,         href: "/dashboard/invoices" },
+  { label: "Vendors",         Icon: Building2,        href: "/dashboard/vendors" },
   { label: "Fraud Detection", Icon: ShieldAlert,      href: "/dashboard/fraud-detection", badge: true },
   { label: "Analytics",       Icon: BarChart3,        href: "/dashboard/analytics" },
   { label: "Audit Log",       Icon: Activity,         href: "/dashboard/audit" },

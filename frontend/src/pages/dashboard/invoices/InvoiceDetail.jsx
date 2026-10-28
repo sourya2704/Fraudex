@@ -506,7 +506,8 @@ export default function InvoiceDetail() {
               </div>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 <FieldTile label="Invoice Number" value={invoice.invoice_number}/>
-                <FieldTile label="Vendor"         value={invoice.vendor_name} warn={!invoice.vendor_name}/>
+                <FieldTile label="Vendor"         warn={!invoice.vendor_name} value={invoice.vendor_name &&
+                  <Link to={`/dashboard/vendors/${invoice.vendor_id}`} className="hover:text-indigo-600 hover:underline">{invoice.vendor_name}</Link>}/>
                 <FieldTile label="Invoice Date"   value={fmt(invoice.invoice_date)}/>
                 <FieldTile label="Due Date"       value={fmt(invoice.due_date)}/>
                 <FieldTile label="Subtotal"       value={fmtAmt(invoice.subtotal,invoice.currency)}/>
@@ -712,13 +713,21 @@ export default function InvoiceDetail() {
                 {aiAnalysis.evidence_used && aiAnalysis.evidence_used.length > 0 && (
                   <div>
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      RAG Evidence Used ({aiAnalysis.evidence_used.length} passages)
+                      Policies cited ({aiAnalysis.evidence_used.length} passages)
                     </p>
                     <div className="space-y-1.5">
                       {aiAnalysis.evidence_used.map((e, i) => (
                         <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
-                          <p className="text-[10px] font-semibold text-indigo-500">{e.document_name}</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500 line-clamp-2">{e.chunk_text}</p>
+                          <p className="flex flex-wrap items-center gap-x-2 text-[10px] font-semibold text-indigo-500">
+                            <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono-num">{e.ref || `P${i + 1}`}</span>
+                            {e.document_name}
+                            {e.matched && (
+                              <span className="font-normal text-slate-400">
+                                for {e.matched.replace(/^[A-Z]+: /, "").replace(/_/g, " ").toLowerCase()}
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500 line-clamp-3">{e.chunk_text}</p>
                         </div>
                       ))}
                     </div>

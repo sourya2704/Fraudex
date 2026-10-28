@@ -5,3 +5,4 @@ storage/
 demo_invoices/
 *.db
 data/training/
+app/ml/fraud_model.local*.joblib

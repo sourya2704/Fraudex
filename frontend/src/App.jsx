@@ -10,6 +10,8 @@ import FraudDetection from './pages/dashboard/fraudDetection/FraudDetection'
 import Analytics from './pages/dashboard/analytics/Analytics'
 import Settings from './pages/dashboard/settings/Settings'
 import AuditLog from './pages/dashboard/audit/AuditLog'
+import Vendors from './pages/dashboard/vendors/Vendors'
+import VendorProfile from './pages/dashboard/vendors/VendorProfile'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -26,6 +28,8 @@ function App() {
         <Route path="/dashboard/upload-invoice"         element={<UploadInvoice />} />
         <Route path="/dashboard/invoices"               element={<Invoices />} />
         <Route path="/dashboard/invoices/:invoiceId"    element={<InvoiceDetail />} />
+        <Route path="/dashboard/vendors"                element={<Vendors />} />
+        <Route path="/dashboard/vendors/:vendorId"      element={<VendorProfile />} />
         <Route path="/dashboard/fraud-detection"        element={<FraudDetection />} />
         <Route path="/dashboard/analytics"              element={<Analytics />} />
         <Route path="/dashboard/settings"               element={<Settings />} />

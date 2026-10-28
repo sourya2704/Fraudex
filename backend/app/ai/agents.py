@@ -276,30 +276,85 @@ def historical_analyzer(state: FraudAnalysisState, db: Session) -> FraudAnalysis
 
 # ── Agent 5: RAG Evidence Retriever ──────────────────────────────────────────
 
+# Passages less similar than this are noise, not evidence.
+_MIN_EVIDENCE_SIMILARITY = 0.12
+_MAX_EVIDENCE = 5
+_GUIDELINE_QUERY = "human review decision guidelines approve reject further review"
+
+
+def _evidence_label(query: str) -> str:
+    """What a passage was found for: "HIGH: NEW_VENDOR", a signal name, or the review decision."""
+    if query == _GUIDELINE_QUERY:
+        return "review decision"
+    return query.split(" — ")[0] if " — " in query else query.split(" ")[0]
+
+
+def _by_severity(flags: list[str]) -> list[str]:
+    """"HIGH: CODE — message" strings, most severe first (stable within a level)."""
+    rank = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+    return sorted(flags, key=lambda f: rank.get(f.split(":")[0], 4))
+
+
+def _rule_for_flag(db: Session, flag: str) -> dict | None:
+    """The passage whose heading names this flag's code, e.g. "(INVALID_GST_RATE)"."""
+    from app.models.knowledge_chunk import KnowledgeChunk
+    match = re.match(r"[A-Z]+: ([A-Z_]+) — ", flag)
+    if not match:
+        return None
+    chunk = (db.query(KnowledgeChunk)
+             .filter(KnowledgeChunk.chunk_text.contains(f"({match.group(1)})"))
+             .order_by(KnowledgeChunk.id).first())
+    if chunk is None:
+        return None
+    return {"id": chunk.id, "document_name": chunk.document_name, "source_type": chunk.source_type,
+            "chunk_text": chunk.chunk_text, "similarity": 1.0}
+
+
 def rag_evidence_retriever(state: FraudAnalysisState, db: Session) -> FraudAnalysisState:
+    """
+    Find the policy passage behind each raised flag (the rule that names the
+    flag's code, else a similarity search; one per flag, so a second flag is
+    not crowded out by the first), then the review
+    guideline for the overall picture. Passages are numbered P1, P2, ... for
+    the explanation to cite.
+    """
     if state.get("error"):
         return state
 
     ctx = state["invoice_context"]
     signals = state.get("historical_signals", [])
 
-    query_parts = [
-        f"Invoice amount: {ctx.get('total_amount')}",
-        f"Vendor ID: {ctx.get('vendor_id')}",
-        f"Fraud signals: {', '.join(s['signal'] for s in signals) if signals else 'none'}",
-        f"Deterministic flags: {', '.join(ctx.get('deterministic_flags', [])[:3])}",
-    ]
-    query = " | ".join(query_parts)
+    queries = _by_severity(ctx.get("deterministic_flags", []))
+    flag_text = " ".join(queries)
+    queries += [f"{s['signal']} {s['detail']}" for s in signals if s["signal"] not in flag_text]
+    if not queries:
+        queries = ["no fraud signals raised, approve when every signal is explained"]
+    # The strongest flags come first; keep the last slot for the review guideline.
+    queries = queries[:_MAX_EVIDENCE - 1]
+    queries.append(_GUIDELINE_QUERY)
 
     from app.models.knowledge_chunk import KnowledgeChunk
     status = None
     passages = []
     if db.query(KnowledgeChunk.id).first() is None:
-        # Nothing to search; don't spend an embedding call (or time out on Ollama).
-        status = "knowledge base empty — upload policies via POST /knowledge/upload"
+        # Nothing to search; don't spend an embedding call.
+        status = "knowledge base empty — run scripts/seed_knowledge_base.py or upload via POST /knowledge/upload"
     else:
         try:
-            passages = RAGStore(db).search(query, top_k=5)
+            store, seen = RAGStore(db), set()
+            for q in queries:
+                rule = _rule_for_flag(db, q)
+                if rule is not None and rule["id"] not in seen:
+                    seen.add(rule["id"])
+                    passages.append({**rule, "matched": _evidence_label(q)})
+                    continue
+                for hit in store.search(q, top_k=2):
+                    if hit["similarity"] >= _MIN_EVIDENCE_SIMILARITY and hit["id"] not in seen:
+                        seen.add(hit["id"])
+                        passages.append({**hit, "matched": _evidence_label(q)})
+                        break
+            for i, p in enumerate(passages, 1):
+                p["ref"] = f"P{i}"
         except Exception as e:
             status = f"search failed: {type(e).__name__}: {e}"
 
@@ -308,6 +363,13 @@ def rag_evidence_retriever(state: FraudAnalysisState, db: Session) -> FraudAnaly
         "rag_evidence_retriever": status or f"found {len(passages)} passages",
     }
     return {**state, "evidence_passages": passages, "agent_trace": trace}
+
+
+def _evidence_block(evidence: list, limit: int) -> str:
+    return "\n".join(
+        f"[{p.get('ref', '?')}] {p['document_name']}: {p['chunk_text'][:limit]}"
+        for p in evidence
+    )
 
 
 # ── Agent 6: Risk Assessor ────────────────────────────────────────────────────
@@ -321,10 +383,7 @@ def risk_assessor(state: FraudAnalysisState, db: Session) -> FraudAnalysisState:
     det_score = state.get("risk_score_deterministic") or 0.0
     evidence = state.get("evidence_passages", [])
 
-    evidence_text = "\n".join(
-        f"- [{p['document_name']}]: {p['chunk_text'][:200]}"
-        for p in evidence
-    ) if evidence else "No relevant policy passages found."
+    evidence_text = _evidence_block(evidence, 300) if evidence else "No relevant policy passages found."
 
     signal_text = "\n".join(
         f"- {s['severity']}: {s['signal']} — {s['detail']}"
@@ -422,9 +481,20 @@ Respond with ONLY a number between 0 and 100. Nothing else."""
     }
 
 
-def _fallback_explanation(ctx: dict, signals: list, risk_level: str, final_score: float) -> str:
+def _first_sentence(text: str) -> str:
+    """The rule itself: the sentence after the "Title (CODE)." heading."""
+    body = re.sub(r"^[^.]*\([A-Z_]+\)\.\s*", "", text.strip())
+    sentences = re.split(r"(?<=[.!?])\s", body)
+    # Pattern entries open with a short title ("Duplicate payment fraud.").
+    if len(sentences) > 1 and len(sentences[0].split()) <= 4:
+        sentences = sentences[1:]
+    return sentences[0]
+
+
+def _fallback_explanation(ctx: dict, signals: list, risk_level: str, final_score: float,
+                          evidence: list | None = None) -> str:
     """Evidence-based summary used when no LLM is reachable."""
-    flags = ctx.get("deterministic_flags", [])
+    flags = _by_severity(ctx.get("deterministic_flags", []))
     parts = [f"Risk level {risk_level} ({final_score}/100), based on the rule engine"]
     if ctx.get("ml_fraud_probability") is not None:
         parts[0] += f" and the trained model ({ctx['ml_fraud_probability']:.0%} fraud probability)"
@@ -436,6 +506,9 @@ def _fallback_explanation(ctx: dict, signals: list, risk_level: str, final_score
     extra = [s["detail"] for s in signals if s["signal"] not in " ".join(flags)]
     if extra:
         parts.append("Also noted: " + "; ".join(extra[:2]) + ".")
+    cited = [p for p in (evidence or []) if p.get("matched", "").split(": ", 1)[-1] in " ".join(flags)]
+    for p in cited[:3]:
+        parts.append(f"Policy [{p['ref']}] ({p['document_name']}): {_first_sentence(p['chunk_text'])}")
     if risk_level in ("HIGH", "CRITICAL"):
         parts.append("Recommendation: hold payment and verify with the vendor before approving.")
     elif risk_level == "MEDIUM":
@@ -457,10 +530,7 @@ def explanation_writer(state: FraudAnalysisState, db: Session) -> FraudAnalysisS
     risk_level = state.get("risk_level", "UNKNOWN")
     final_score = state.get("risk_score_final", 0)
 
-    evidence_text = "\n".join(
-        f"- [{p['document_name']}]: {p['chunk_text'][:150]}"
-        for p in evidence
-    ) if evidence else "No policy references available."
+    evidence_text = _evidence_block(evidence, 400) if evidence else "No policy references available."
 
     signal_text = "\n".join(
         f"- {s['severity']}: {s['signal']} — {s['detail']}"
@@ -473,8 +543,8 @@ def explanation_writer(state: FraudAnalysisState, db: Session) -> FraudAnalysisS
 
 IMPORTANT RULES:
 1. Never say "this IS fraud" — say "signals suggest" or "evidence indicates"
-2. Always cite specific evidence
-3. Be concise (3-4 sentences max)
+2. Always cite specific evidence; when a policy passage supports a point, cite it by its tag, e.g. [P1]
+3. Be concise (3-4 sentences max); do not cite a passage that does not apply
 4. End with a clear recommendation for the reviewer
 5. You support human review, you do not make final decisions
 
@@ -495,7 +565,7 @@ Write the analysis report now:"""
         explanation, _ = _call_llm(prompt)
     except Exception as e:
         print(f"[LLM ERROR in explanation_writer] {type(e).__name__}: {e}")
-        explanation = _fallback_explanation(ctx, signals, risk_level, final_score)
+        explanation = _fallback_explanation(ctx, signals, risk_level, final_score, evidence)
 
     trace = {**state.get("agent_trace", {}), "explanation_writer": "completed"}
     return {**state, "ai_explanation": explanation, "agent_trace": trace}

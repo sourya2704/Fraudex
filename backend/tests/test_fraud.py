@@ -67,3 +67,21 @@ def test_fifteen_percent_gst_is_invalid(db):
                   invoice_number="X", invoice_date=date(2026, 1, 1), created_at=datetime(2026, 1, 2))
     db.add(inv); db.flush()
     assert "INVALID_GST_RATE" in _codes(db, inv)
+
+
+def test_review_without_uploader_does_not_crash(db):
+    from fastapi.testclient import TestClient
+
+    from app.core.security import create_access_token, hash_password
+    from app.main import app
+    from app.models.user import User
+
+    admin = User(name="A", email="rev@x.io", password_hash=hash_password("pw123456"), role="ADMIN")
+    db.add(admin)
+    inv = Invoice(invoice_number="SEED-1", total_amount=Decimal("100"), status="ANALYSIS_READY")
+    db.add(inv)
+    db.commit()
+    token = create_access_token({"sub": str(admin.id), "role": "ADMIN"})
+    r = TestClient(app).post(f"/invoices/{inv.id}/review", json={"decision": "APPROVE", "reason": "ok"},
+                             headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code in (200, 201), r.text

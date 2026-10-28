@@ -59,3 +59,4 @@ google-genai==1.21.1
 # ML fraud model (app/ml)
 scikit-learn==1.6.1
 joblib==1.5.1
+threadpoolctl==3.7.0

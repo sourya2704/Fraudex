@@ -93,14 +93,17 @@ def review_invoice(
         )
 
     decision_label = {"APPROVE": "approved", "REJECT": "rejected", "REQUEST_FURTHER_REVIEW": "sent for further review"}
-    notify(
-        db,
-        user_id=invoice.uploaded_by,
-        type="REVIEW_DECISION",
-        title=f"Invoice #{invoice_id} {decision_label.get(body.decision, body.decision.lower())}",
-        message=f"Reviewed by {current_user.name} ({current_user.role}): {body.reason[:120]}",
-        invoice_id=invoice_id,
-    )
+    # Seeded/imported invoices, and those whose uploader was deleted, have no
+    # uploader to notify; inserting a notification for nobody crashed the review.
+    if invoice.uploaded_by is not None:
+        notify(
+            db,
+            user_id=invoice.uploaded_by,
+            type="REVIEW_DECISION",
+            title=f"Invoice #{invoice_id} {decision_label.get(body.decision, body.decision.lower())}",
+            message=f"Reviewed by {current_user.name} ({current_user.role}): {body.reason[:120]}",
+            invoice_id=invoice_id,
+        )
 
     db.commit()
     db.refresh(review)
