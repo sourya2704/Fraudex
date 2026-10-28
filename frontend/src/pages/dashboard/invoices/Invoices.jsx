@@ -195,7 +195,9 @@ export default function Invoices() {
                       <tr key={inv.id} className="transition hover:bg-indigo-50/30">
                         <td className="px-5 py-3.5 text-xs font-bold text-slate-400">#{displayNum}</td>
                         <td className="px-5 py-3.5 text-xs font-medium text-slate-700">{inv.invoice_number||<span className="text-slate-300">—</span>}</td>
-                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name||<span className="text-slate-300">Unknown</span>}</td>
+                        <td className="px-5 py-3.5 text-xs text-slate-600">{inv.vendor_name
+                          ? <Link to={`/dashboard/vendors/${inv.vendor_id}`} className="hover:text-indigo-600 hover:underline">{inv.vendor_name}</Link>
+                          : <span className="text-slate-300">Unknown</span>}</td>
                         <td className="px-5 py-3.5 text-xs text-slate-500">{fmt(inv.invoice_date)}</td>
                         <td className="px-5 py-3.5 text-xs font-semibold text-slate-800">{fmtAmt(inv.total_amount,inv.currency)}</td>
                         <td className="px-5 py-3.5"><Badge cls={STATUS_STYLE[inv.status]||STATUS_STYLE.DRAFT}>{STATUS_LABEL[inv.status]||inv.status}</Badge></td>

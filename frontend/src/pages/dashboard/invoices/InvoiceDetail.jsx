@@ -506,7 +506,8 @@ export default function InvoiceDetail() {
               </div>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 <FieldTile label="Invoice Number" value={invoice.invoice_number}/>
-                <FieldTile label="Vendor"         value={invoice.vendor_name} warn={!invoice.vendor_name}/>
+                <FieldTile label="Vendor"         warn={!invoice.vendor_name} value={invoice.vendor_name &&
+                  <Link to={`/dashboard/vendors/${invoice.vendor_id}`} className="hover:text-indigo-600 hover:underline">{invoice.vendor_name}</Link>}/>
                 <FieldTile label="Invoice Date"   value={fmt(invoice.invoice_date)}/>
                 <FieldTile label="Due Date"       value={fmt(invoice.due_date)}/>
                 <FieldTile label="Subtotal"       value={fmtAmt(invoice.subtotal,invoice.currency)}/>

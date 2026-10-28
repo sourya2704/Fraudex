@@ -30,6 +30,7 @@ from app.api.notifications import router as notifications_router
 from app.api.password_reset import router as password_reset_router
 from app.api.ml import router as ml_router
 from app.api.batch import router as batch_router
+from app.api.vendor_insights import router as vendor_insights_router
 
 app = FastAPI(
     title="FrauDex API",
@@ -63,6 +64,7 @@ app.include_router(notifications_router)
 app.include_router(password_reset_router)
 app.include_router(ml_router)
 app.include_router(batch_router)
+app.include_router(vendor_insights_router)
 
 
 @app.get("/", tags=["Health"])
