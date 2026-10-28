@@ -22,9 +22,7 @@ import os
 import sys
 import tempfile
 from collections import defaultdict
-from datetime import date, datetime
 from decimal import Decimal
-from types import SimpleNamespace
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -47,6 +45,7 @@ from sklearn.metrics import (  # noqa: E402
 )
 
 from app.ml.features import FEATURE_NAMES, build_features  # noqa: E402
+from app.ml.training import PARAMS, best_threshold, featurize_chronological, load_synthetic_rows  # noqa: E402
 
 DATA = os.path.join(ROOT, "data", "training")
 MODEL_OUT = os.path.join(ROOT, "app", "ml", "fraud_model.joblib")
@@ -55,53 +54,10 @@ MODEL_VERSION = "1.0"
 
 
 def load_rows():
-    path = os.path.join(DATA, "invoices.jsonl")
-    if not os.path.exists(path):
-        sys.exit("data/training/invoices.jsonl not found — run scripts/generate_training_invoices.py first")
-    with open(path) as f:
-        rows = [json.loads(line) for line in f]
-    rows.sort(key=lambda r: r["created_at"])
-    vendor_ids = {}
-    out = []
-    for r in rows:
-        vid = vendor_ids.setdefault(r["vendor_key"], len(vendor_ids) + 1)
-        out.append(SimpleNamespace(
-            id=r["id"],
-            vendor_id=vid,
-            vendor_key=r["vendor_key"],
-            vendor_name=r["vendor_name"],
-            vendor_gstin=r["vendor_gstin"],
-            invoice_number=r["invoice_number"],
-            invoice_date=date.fromisoformat(r["invoice_date"]),
-            due_date=date.fromisoformat(r["due_date"]) if r["due_date"] else None,
-            created_at=datetime.fromisoformat(r["created_at"]),
-            subtotal=r["subtotal"],
-            tax=r["tax"],
-            total_amount=r["total_amount"],
-            currency=r["currency"],
-            is_fraud=r["is_fraud"],
-            fraud_type=r["fraud_type"],
-            raw_text=None,
-        ))
-    return out
+    return load_synthetic_rows(os.path.join(DATA, "invoices.jsonl"))
 
 
-def featurize(rows):
-    seen = defaultdict(list)
-    X = []
-    for r in rows:  # chronological: history = this vendor's earlier uploads
-        X.append(build_features(r, seen[r.vendor_id]))
-        seen[r.vendor_id].append(r)
-    return np.array(X, dtype=float), np.array([r.is_fraud for r in rows])
-
-
-def best_threshold(y, p):
-    best = (0.5, -1.0)
-    for t in np.arange(0.1, 0.91, 0.01):
-        f = f1_score(y, p >= t, zero_division=0)
-        if f > best[1]:
-            best = (round(float(t), 2), f)
-    return best[0]
+featurize = featurize_chronological
 
 
 def run_rule_engine(rows, test_ids, model_bundle):
@@ -218,8 +174,7 @@ def main():
     print(f"{n} invoices — fit {len(y_fit)}, threshold-tuning {len(y_val)}, test {len(y_test)} "
           f"({y_test.sum()} fraud in test)")
 
-    params = dict(max_iter=400, learning_rate=0.06, max_leaf_nodes=31, l2_regularization=1.0,
-                  class_weight="balanced", random_state=7)
+    params = PARAMS
     model = HistGradientBoostingClassifier(**params).fit(X_fit, y_fit)
     threshold = best_threshold(y_val, model.predict_proba(X_val)[:, 1])
 

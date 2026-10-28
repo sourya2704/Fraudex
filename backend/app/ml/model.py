@@ -1,8 +1,9 @@
 """
 Trained fraud model: loading and scoring.
 
-The model is trained by scripts/train_fraud_model.py and saved to
-app/ml/fraud_model.joblib. If the file or scikit-learn is missing, scoring
+The base model is trained by scripts/train_fraud_model.py and saved to
+app/ml/fraud_model.joblib; a model retrained from reviewer decisions is saved
+next to it as fraud_model.local.joblib and takes priority. If the file or scikit-learn is missing, scoring
 returns None and the rest of the pipeline works exactly as before.
 """
 
@@ -14,21 +15,28 @@ from sqlalchemy.orm import Session
 
 from app.ml.features import FEATURE_NAMES, build_features
 
-MODEL_PATH = os.getenv(
-    "FRAUD_MODEL_PATH",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fraud_model.joblib"),
-)
+_ML_DIR = os.path.dirname(os.path.abspath(__file__))
+# Base model, committed to the repository (scripts/train_fraud_model.py).
+MODEL_PATH = os.getenv("FRAUD_MODEL_PATH", os.path.join(_ML_DIR, "fraud_model.joblib"))
+# Model retrained in this installation from reviewer decisions (git-ignored).
+# When present it is used instead of the base model.
+LOCAL_MODEL_PATH = os.path.join(_ML_DIR, "fraud_model.local.joblib")
+
+
+def active_model_path() -> str:
+    return LOCAL_MODEL_PATH if os.path.exists(LOCAL_MODEL_PATH) else MODEL_PATH
 
 
 @lru_cache(maxsize=1)
 def load_model() -> Optional[dict]:
     """Return the saved bundle {model, feature_names, threshold, metrics} or None."""
-    if not os.path.exists(MODEL_PATH):
+    path = active_model_path()
+    if not os.path.exists(path):
         return None
     try:
         import joblib
 
-        bundle = joblib.load(MODEL_PATH)
+        bundle = joblib.load(path)
     except Exception as e:  # sklearn missing / incompatible pickle
         print(f"[ML] could not load fraud model: {e}")
         return None
