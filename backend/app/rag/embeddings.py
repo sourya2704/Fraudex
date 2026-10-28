@@ -77,13 +77,21 @@ def embedder_name() -> str:
     return f"ollama:{OLLAMA_EMBED_MODEL}" if ollama_available() else "local-hashing"
 
 
+# Ollama can be running without the embedding model pulled; fall back then too.
+
 def embed_text(text: str) -> list[float]:
     if ollama_available():
-        return _ollama_embedder().embed_query(text)
+        try:
+            return _ollama_embedder().embed_query(text)
+        except Exception as e:
+            print(f"[embeddings] Ollama failed, using local embedding: {type(e).__name__}: {e}")
     return local_embed(text)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     if ollama_available():
-        return _ollama_embedder().embed_documents(texts)
+        try:
+            return _ollama_embedder().embed_documents(texts)
+        except Exception as e:
+            print(f"[embeddings] Ollama failed, using local embedding: {type(e).__name__}: {e}")
     return [local_embed(t) for t in texts]
