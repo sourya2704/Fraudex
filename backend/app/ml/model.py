@@ -46,6 +46,20 @@ def load_model() -> Optional[dict]:
     return bundle
 
 
+def predict_one(model, features: list) -> float:
+    """
+    Fraud probability for a single row, on one thread.
+
+    scikit-learn spreads even a one-row prediction across every CPU thread;
+    for 400 trees that overhead was ~4 s per invoice (and far worse when a
+    batch check and a live check ran at once). One row needs one thread.
+    """
+    from threadpoolctl import threadpool_limits
+
+    with threadpool_limits(limits=1):
+        return float(model.predict_proba([features])[0][1])
+
+
 def vendor_history(db: Session, invoice: Any) -> list:
     from app.models.invoice import Invoice
 
@@ -70,7 +84,7 @@ def score_invoice(db: Session, invoice: Any) -> Optional[dict]:
         return None
 
     features = build_features(invoice, vendor_history(db, invoice))
-    probability = float(bundle["model"].predict_proba([features])[0][1])
+    probability = predict_one(bundle["model"], features)
 
     # Explain with the gap from a typical legitimate invoice, weighted by how
     # much the model relies on each feature.

@@ -376,6 +376,26 @@ def validate_invoice(
         "validation": result.to_dict(),
     }
 
+def run_and_store_detection(db: Session, invoice: Invoice):
+    """
+    Run every fraud check on one invoice and upsert its stored result.
+
+    Returns (result_dict, FraudDetectionResult row); the caller commits.
+    Shared by the single-invoice endpoint and the batch "check all" job.
+    """
+    result_dict = FraudDetector(db).detect_fraud(invoice).to_dict()
+    db_result = db.query(FraudDetectionResult).filter(
+        FraudDetectionResult.invoice_id == invoice.id
+    ).first()
+    if db_result is None:
+        db_result = FraudDetectionResult(invoice_id=invoice.id)
+        db.add(db_result)
+    for key in ("risk_score", "risk_level", "fraud_flags", "critical_count",
+                "high_count", "medium_count", "low_count"):
+        setattr(db_result, key, result_dict[key])
+    return result_dict, db_result
+
+
 @router.post("/{invoice_id}/detect-fraud", response_model=FraudDetectionResponse)
 def detect_fraud(
     invoice_id: int,
@@ -384,36 +404,7 @@ def detect_fraud(
 ):
     invoice = _get_invoice_or_404(db, invoice_id)
 
-    detector = FraudDetector(db)
-    detection_result = detector.detect_fraud(invoice)
-
-    result_dict = detection_result.to_dict()
-
-    existing = db.query(FraudDetectionResult).filter(
-        FraudDetectionResult.invoice_id == invoice_id
-    ).first()
-
-    if existing:
-        existing.risk_score = result_dict["risk_score"]
-        existing.risk_level = result_dict["risk_level"]
-        existing.fraud_flags = result_dict["fraud_flags"]
-        existing.critical_count = result_dict["critical_count"]
-        existing.high_count = result_dict["high_count"]
-        existing.medium_count = result_dict["medium_count"]
-        existing.low_count = result_dict["low_count"]
-        db_result = existing
-    else:
-        db_result = FraudDetectionResult(
-            invoice_id=invoice_id,
-            risk_score=result_dict["risk_score"],
-            risk_level=result_dict["risk_level"],
-            fraud_flags=result_dict["fraud_flags"],
-            critical_count=result_dict["critical_count"],
-            high_count=result_dict["high_count"],
-            medium_count=result_dict["medium_count"],
-            low_count=result_dict["low_count"],
-        )
-        db.add(db_result)
+    result_dict, db_result = run_and_store_detection(db, invoice)
 
     try:
         db.commit()

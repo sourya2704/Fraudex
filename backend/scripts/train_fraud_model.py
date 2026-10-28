@@ -45,6 +45,7 @@ from sklearn.metrics import (  # noqa: E402
 )
 
 from app.ml.features import FEATURE_NAMES, build_features  # noqa: E402
+from app.ml.model import predict_one  # noqa: E402
 from app.ml.training import PARAMS, best_threshold, featurize_chronological, load_synthetic_rows  # noqa: E402
 
 DATA = os.path.join(ROOT, "data", "training")
@@ -99,7 +100,7 @@ def run_rule_engine(rows, test_ids, model_bundle):
             rule_score = rules.calculate_risk_score()
 
             features = build_features(r, history[r.vendor_id])
-            prob = float(model.predict_proba([features])[0][1])
+            prob = predict_one(model, features)
             flag = flag_from_score(
                 {"probability": prob, "threshold": model_bundle["threshold"], "top_factors": []},
                 FraudFlag, Severity,

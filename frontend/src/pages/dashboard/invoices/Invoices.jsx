@@ -5,6 +5,7 @@ import apiClient, { apiError } from "../../../api/client";
 import Sidebar from "../../Sidebar/Sidebar";
 import { useAuth } from "../../../context/AuthContext";
 import NotificationBell from "../../../components/NotificationBell";
+import BatchCheckBar from "../../../components/BatchCheckBar";
 
 const STATUS_STYLE = {
   DOCUMENTS_UPLOADED:"bg-blue-50 text-blue-600 border-blue-200",
@@ -118,6 +119,11 @@ export default function Invoices() {
         </header>
 
         <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
+
+          {/* batch fraud check (admins and finance managers) */}
+          {(user?.role === "ADMIN" || user?.role === "FINANCE_MANAGER") && (
+            <div className="mb-5"><BatchCheckBar onDone={loadData} /></div>
+          )}
 
           {/* stat cards */}
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
