@@ -1,0 +1,48 @@
+# Production: PostgreSQL + FrauDex (website and API on one port).
+#
+#   cp .env.prod.example .env.prod      # then edit the passwords
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Open http://localhost:8080 (or http://<server-ip>:8080).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fraudex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      POSTGRES_DB: fraudex_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fraudex -d fraudex_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fraudex:${POSTGRES_PASSWORD}@db:5432/fraudex_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env.prod}
+      ADMIN_SIGNUP_KEY: ${ADMIN_SIGNUP_KEY:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
+      RAG_EMBEDDER: ${RAG_EMBEDDER:-local}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${APP_PORT:-8080}:8000"
+    volumes:
+      - uploads:/app/storage
+
+volumes:
+  db_data:
+  uploads:

@@ -1,0 +1,33 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo.
+# Creates one web service (API + website). The database is external (e.g. a
+# free Neon PostgreSQL): Render asks for its connection string as DATABASE_URL.
+services:
+  - type: web
+    name: fraudex
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      # PostgreSQL connection string, e.g. from neon.tech:
+      # postgresql://user:password@host/dbname?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_SIGNUP_KEY
+        generateValue: true
+      # First admin login; Render asks for these when you create the Blueprint.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Fill an empty database with ~1000 demo invoices on first start.
+      - key: SEED_DEMO_DATA
+        value: "true"
+      # No Ollama in the cloud: policy search uses the local embedding.
+      - key: RAG_EMBEDDER
+        value: local
+      # Optional: a Google AI Studio key gives AI-written explanations.
+      - key: GEMINI_API_KEY
+        sync: false

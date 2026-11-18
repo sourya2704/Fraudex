@@ -10,6 +10,9 @@ BASE_DIR = os.path.dirname(
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fraudex.db")
+# Some hosts hand out "postgres://", which SQLAlchemy no longer accepts.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL.removeprefix("postgres://")
 
 if DATABASE_URL.startswith("sqlite:///./"):
     DATABASE_URL = "sqlite:///" + os.path.join(
