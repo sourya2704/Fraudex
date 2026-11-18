@@ -1,0 +1,38 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo.
+# Creates the PostgreSQL database and one web service (API + website).
+databases:
+  - name: fraudex-db
+    plan: free
+    databaseName: fraudex_db
+    user: fraudex
+
+services:
+  - type: web
+    name: fraudex
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fraudex-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_SIGNUP_KEY
+        generateValue: true
+      # First admin login; Render asks for these when you create the Blueprint.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Fill an empty database with ~1000 demo invoices on first start.
+      - key: SEED_DEMO_DATA
+        value: "true"
+      # No Ollama in the cloud: policy search uses the local embedding.
+      - key: RAG_EMBEDDER
+        value: local
+      # Optional: a Google AI Studio key gives AI-written explanations.
+      - key: GEMINI_API_KEY
+        sync: false
