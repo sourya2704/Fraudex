@@ -44,16 +44,17 @@ The database and uploaded invoices live in the Docker volumes `db_data` and
 Open port 8080, or put a reverse proxy with HTTPS (Caddy, Nginx) in front of it.
 
 **Render (free tier):** `render.yaml` is a Render Blueprint that builds the same
-Dockerfile and creates the PostgreSQL database.
+Dockerfile. The database is external, because Render allows only one free
+database per account: create a free PostgreSQL at neon.tech and copy its
+connection string.
 
 1. Go to dashboard.render.com, then New → Blueprint, and pick this GitHub repo.
-2. Fill in `ADMIN_EMAIL`, `ADMIN_PASSWORD` and, optionally, `GEMINI_API_KEY`
-   when Render asks.
+2. When Render asks, fill in `DATABASE_URL` (the Neon connection string),
+   `ADMIN_EMAIL`, `ADMIN_PASSWORD` and, optionally, `GEMINI_API_KEY`.
 3. Deploy. The site URL appears on the `fraudex` service.
 
 Free-tier limits: the service sleeps after 15 minutes idle (the first visit then
-takes about a minute), the free database expires after 30 days, and uploaded
-files are lost on redeploy.
+takes about a minute), and uploaded files are lost on redeploy.
 
 ## AI explanations
 

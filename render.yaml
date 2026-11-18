@@ -1,11 +1,6 @@
 # Render Blueprint: Dashboard → New → Blueprint → pick this repo.
-# Creates the PostgreSQL database and one web service (API + website).
-databases:
-  - name: fraudex-db
-    plan: free
-    databaseName: fraudex_db
-    user: fraudex
-
+# Creates one web service (API + website). The database is external (e.g. a
+# free Neon PostgreSQL): Render asks for its connection string as DATABASE_URL.
 services:
   - type: web
     name: fraudex
@@ -14,10 +9,10 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
+      # PostgreSQL connection string, e.g. from neon.tech:
+      # postgresql://user:password@host/dbname?sslmode=require
       - key: DATABASE_URL
-        fromDatabase:
-          name: fraudex-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: ADMIN_SIGNUP_KEY

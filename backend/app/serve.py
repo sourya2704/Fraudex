@@ -14,6 +14,11 @@ and fill an empty database with demo invoices (SEED_DEMO_DATA=true).
 
 import os
 
+# In production a missing DATABASE_URL would silently fall back to a
+# throwaway SQLite file inside the container; refuse to start instead.
+if not os.getenv("DATABASE_URL"):
+    raise SystemExit("DATABASE_URL is not set: point it at the PostgreSQL database.")
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
